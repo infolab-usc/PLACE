@@ -1,0 +1,10 @@
+backup
+output
+dataset
+dataset_git
+.idea
+download_result.sh
+setup.py
+upload_data.sh
+upload_source.sh
+*.pyc
