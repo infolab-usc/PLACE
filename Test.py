@@ -18,8 +18,8 @@ eps_list = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0]
 seed_list = [9110, 4064, 6903, 7509, 5342, 3230, 3584, 7019, 3564, 6456]
 
 # f_max_list = [1]
-# f_max_list = [1,2,3,4,5,6,7,8,9,10]
-f_max_list = [1,5,10,15,20,15,30,35,40,45]
+f_max_list = [1,2,3,4,5,6,7,8,9,10]
+# f_max_list = [1,5,10,15,20,15,30,35,40,45]
 
 """
 Shannon entropy of two values
@@ -47,31 +47,7 @@ def shanon_entropy_list(l):
         total = total - c * np.log(c)/np.log(2)
     return total
 
-# print shanon_entropy_list([1,2])
-
-# Test entropy sensitivity
-if False:
-    N = 100
-    for p_max in np.arange(0.01,0.2,0.02):
-        const = 1.0/(1-p_max)*shanon_entropy(p_max, 1-p_max)
-        list = [(1-p_max)/(N-1) for i in range(0,N-1)]
-        list.append(p_max)
-        entropy = p_max/(1-p_max) * shanon_entropy_list(list)
-        upper_bound = const + entropy
-
-
-        print p_max, '\t', const, '\t', entropy, '\t', upper_bound
-
-
-    p_max = 0.02
-    for N in [2**i for i in np.arange(3,24,2)]:
-        const = 1.0/(1-p_max)*shanon_entropy(p_max, 1-p_max)
-        list = [(1-p_max)/(N-1) for i in range(0,N-1)]
-        list.append(p_max)
-        entropy = p_max/(1-p_max) * shanon_entropy_list(list)
-        upper_bound = const + entropy
-
-        print N, '\t', const, '\t', entropy, '\t', upper_bound
+print shanon_entropy_list([2,1,1])
 
 """
 sensitivity of shannon entropy
@@ -84,6 +60,17 @@ def sensitivity(N, p_max):
     # print N, p_max, const + entropy
     return entropy + const
 
+
+# Test entropy sensitivity
+if False:
+    N = 100
+    for p_max in np.arange(0.01,0.2,0.02):
+        print p_max, '\t', sensitivity(N, p_max)
+
+
+    p_max = 0.1
+    for N in [2**i for i in np.arange(6,16,1)]:
+        print N, '\t', sensitivity(N, p_max)
 
 differ = Differential(1000)
 
@@ -136,15 +123,15 @@ def evalAll(params):
             p.eps = eps_list[i]
 
             # compute f_max, f_total
-            f_max = [max(p.d_locs[key].values()) if len(p.d_locs[key].values()) >= p.K else 0 for key in p.d_locs.keys()]
-            f_total = [sum(p.d_locs[key].values()) if len(p.d_locs[key].values()) >= p.K else 0 for key in p.d_locs.keys()]
+            f_max = [max(p.d_locs[key].values()) for key in p.d_locs.keys() if len(p.d_locs[key].values()) >= p.K]
+            f_total = [sum(p.d_locs[key].values()) for key in p.d_locs.keys() if len(p.d_locs[key].values()) >= p.K]
 
             # global sensitivity
-            sens = [sensitivity(len(f_max), float(f_max[k]) / f_total[k]) if f_total[k] != 0 else 0 for k in range(len(f_max))]
+            sens = [sensitivity(len(f_max), float(f_max[k]) / f_total[k]) for k in range(len(f_max))]
             max_sen = max(sens)
 
             # noisy entropy
-            E_n = [noisyEntropy(E_a[k], max_sen, p.eps) if f_total[k] != 0 else 0 for k in range(len(E_a))]
+            E_n = [noisyEntropy(E_a[k], max_sen, p.eps) for k in range(len(E_a))]
 
             res_cube[i, j, 0] = rmse(E_a,E_n)
             res_cube[i, j, 1] = mre(E_a,E_n)
@@ -206,7 +193,7 @@ def evalCutFreq(params):
 compute actual shannon entropy
 """
 def actual_entropy(p):
-    E_a = [shanon_entropy_list(p.d_locs[key].values()) if len(p.d_locs[key].values()) >= p.K else 0 for key in p.d_locs.keys()]
+    E_a = [shanon_entropy_list(p.d_locs[key].values()) for key in p.d_locs.keys() if len(p.d_locs[key].values()) >= p.K]
     print "average entropy", np.average([e for e in E_a if e > 0])
     print "max entropy", max([e for e in E_a if e > 0])
     print "min entropy", min([e for e in E_a if e > 0])
@@ -239,6 +226,25 @@ def createGnuData(p, exp_name, var_list):
                 c += 1
             out.close()
 
+def createGnuData2(p, exp_name, var_list):
+    """
+    Post-processing output files to generate Gnuplot-friendly outcomes
+    """
+    metrics = ['_eps_']
+
+    for metric in metrics:
+        out = open(p.resdir + exp_name + metric, 'w')
+        for var in var_list:
+            fileName = p.resdir + exp_name + metric + str(var)
+            print fileName
+            try:
+                thisfile = open(fileName, 'r')
+            except:
+                sys.exit('no input result file!')
+            out.write(thisfile.readlines()[0])
+            thisfile.close()
+        out.close()
+
 def exp1():
     logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
     logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
@@ -247,20 +253,22 @@ def exp1():
 
     p.select_dataset()
 
-    p.d_locs, p.f_max, p.f_total, p.users = read_checkins("dataset/gowalla_NY.txt")
+    # p.d_locs, p.f_max, p.f_total, p.users = read_checkins("dataset/gowalla_NY.txt")
+    #
+    # E_a = actual_entropy(p)
+    #
+    # p.debug()
+    #
+    # evalAll((p, 10, E_a))
+    #
+    # pool = Pool(processes=len(eps_list))
+    # params = []
+    # for eps in eps_list:
+    #     params.append((p, eps, E_a))
+    # pool.map(evalAll, params)
+    # pool.join()
 
-    E_a = actual_entropy(p)
-
-    p.debug()
-
-    evalAll((p, 10, E_a))
-
-    pool = Pool(processes=len(eps_list))
-    params = []
-    for eps in eps_list:
-        params.append((p, eps, E_a))
-    pool.map(evalAll, params)
-    pool.join()
+    createGnuData2(p, "evalAll", eps_list)
 
 def exp2():
     logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
@@ -270,22 +278,22 @@ def exp2():
 
     p.select_dataset()
 
-    p.d_locs, p.f_max, p.f_total, p.users = read_checkins("dataset/gowalla_NY.txt")
+    # p.d_locs, p.f_max, p.f_total, p.users = read_checkins("dataset/gowalla_NY.txt")
+    #
+    # E_a = actual_entropy(p)
+    #
+    # p.debug()
+    #
+    # evalCutFreq((p, 10, E_a))
+    #
+    # pool = Pool(processes=len(eps_list))
+    # params = []
+    # for f_max in f_max_list:
+    #     params.append((p, f_max, E_a))
+    # pool.map(evalCutFreq, params)
+    # pool.join()
 
-    E_a = actual_entropy(p)
-
-    p.debug()
-
-    evalCutFreq((p, 10, E_a))
-
-    pool = Pool(processes=len(eps_list))
-    params = []
-    for f_max in f_max_list:
-        params.append((p, f_max, E_a))
-    pool.map(evalCutFreq, params)
-    pool.join()
-
-    # createGnuData(p, "evalCutFreq", f_max_list)
+    createGnuData(p, "evalCutFreq", f_max_list)
 
 if __name__ == '__main__':
-    exp1()
+    exp2()

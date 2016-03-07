@@ -13,7 +13,7 @@ class Params(object):
         self.f_total = None
         self.users = None
 
-        self.K = 100 # only consider locations with at least K users
+        self.K = 20 # only consider locations with at least K users
         self.eps = 1.0  # epsilon
         self.seed = seed # used in generating noisy counts
 
