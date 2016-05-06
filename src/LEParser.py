@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 from sets import Set
 
 # field_names = ["user_id", "datetime", "latitude", "longitude", "location_id"]
-def read_checkins(file):
+def read_checkins(p):
     map_locs = {} # key = loc_id, value = (lat, lng)
     locs = {} # key = loc_id, value = {user_id, frequency}
     f_max = 0 # maximum frequency
     f_total = 0 # total frequency
     users = {} # key = user_id, value = {loc_id, frequency}
     min_x, min_y, max_x, max_y = 90, 180, -90, -180
-    with open(file, 'r') as ins:
+    with open(p.dataset, 'r') as ins:
         for row in ins:
             f_total = f_total + 1
             row = row.split()
