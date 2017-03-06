@@ -4,6 +4,9 @@ import logging
 import time
 import sys
 import numpy as np
+import copy
+import random
+import scipy.stats as stats
 from multiprocessing import Pool
 from Differential import Differential
 from Kd_standard import Kd_standard
@@ -12,92 +15,104 @@ from LEParser import read_checkins
 from KExp import KExp
 
 from Params import Params
-import editdistance
+# import editdistance
 import collections
 
 sys.path.append('/Users/ubriela/Dropbox/_USC/_Research/_Crowdsourcing/_Privacy/PSD/src/icde12')
 
 # eps_list = [1]
 # eps_list = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0]
-eps_list = [100.0]
+eps_list = [0.1, 1, 10, 100]
 
-# seed_list = [9110, 4064, 6903]
-seed_list = [9110, 4064, 6903, 7509, 5342, 3230, 3584, 7019, 3564, 6456]
+seed_list = [9110, 4064, 6903]
+# seed_list = [9110, 4064, 6903, 7509, 5342, 3230, 3584, 7019, 3564, 6456]
 
 # C_list = [1]
-C_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+C_list = [1,2,3,4,5,6,7,8,9,10]
 # C_list = [1,5,10,15,20,15,30,35,40,45]
 
 # [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40
-M_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+M_list = [1,2,3,4,5,6,7,8,9,10]
 
+K_list = [10,20,30,40,50,60,70,80,90,100]
 
-K_list = [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200]
+# print stats.entropy(2,3)
+# print stats.entropy(2,2)
+# print stats.entropy(1,1)
+# print stats.entropy(2,3)
+# print stats.entropy(1,0)
 
-"""
-Shannon entropy of two values
-"""
-def shanon_entropy(f1,f2):
-    p1 = float(f1)/(f1+f2)
-    p2 = float(f2)/(f1+f2)
-    return -(p1 * np.log(p1) + p2 * np.log(p2))
+print stats.entropy([0.5, 0.05, 0.45])
+print stats.entropy([2,3,2,2,3])
+# x2 = stats.entropy([8,8,4])
 
-# print shanon_entropy(2,3)
-# print shanon_entropy(2,2)
-# print shanon_entropy(1,1)
-# print shanon_entropy(2,3)
-# print shanon_entropy(1,0)
-
-
-"""
-Shannon entropy a list of frequencies
-"""
-def shanon_entropy_list(l):
-    if len(l) == 1:
-        return 0
-    total = 0
-    s = sum(l)
-    for v in l:
-        c = float(v) / s
-        total = total - c * np.log(c)
-    return total
-
-# x1 = shanon_entropy_list([10,8,4])
-# x2 = shanon_entropy_list([8,8,4])
+print stats.entropy([2,3,4], [4,6,8])
+print stats.entropy([4,6,8], [2,3,4])
 
 # print x1, x2
-# x3 = shanon_entropy_list([8,8,8,7,6,5,4,3,2,1])
-# x4 = shanon_entropy_list([7,7,7,7,6,5,4,3,2,1])
-# x5 = shanon_entropy_list([6,6,6,6,6,5,4,3,2,1])
-# x6 = shanon_entropy_list([5,5,5,5,5,5,4,3,2,1])
-# x7 = shanon_entropy_list([4,4,4,4,4,4,4,3,2,1])
-# x8 = shanon_entropy_list([3,3,3,3,3,3,3,3,2,1])
-# x9 = shanon_entropy_list([2,2,2,2,2,2,2,2,2,1])
-# x10 = shanon_entropy_list([1,1,1,1,1,1,1,1,1,1])
+# x3 = stats.entropy([8,8,8,7,6,5,4,3,2,1])
+# x4 = stats.entropy([7,7,7,7,6,5,4,3,2,1])
+# x5 = stats.entropy([6,6,6,6,6,5,4,3,2,1])
+# x6 = stats.entropy([5,5,5,5,5,5,4,3,2,1])
+# x7 = stats.entropy([4,4,4,4,4,4,4,3,2,1])
+# x8 = stats.entropy([3,3,3,3,3,3,3,3,2,1])
+# x9 = stats.entropy([2,2,2,2,2,2,2,2,2,1])
+# x10 = stats.entropy([1,1,1,1,1,1,1,1,1,1])
 # print x1<x2<x3<x4<x5<x6<x7<x8<x9<x10
+
+
+if False:
+    l = random.sample(range(1,51), 50)
+    print l
+    for i in range(50):
+        print l[i], "\t", stats.entropy(l) - stats.entropy(l[:i] + l[i+1 :])
 
 """
 sensitivity of shannon entropy
 """
-def sensitivity(N, p_max):
-    list = [(1-p_max)/(N-1) for i in range(0, N-1)]
-    list.append(p_max)
-    entropy = p_max/(1-p_max) * shanon_entropy_list(list)
-    const = 1.0/(1-p_max)*shanon_entropy(p_max, 1-p_max)
-    # print const, entropy
-    return max(entropy, const)
+# def sensitivity(N, p_max):
+#     list = [(1-p_max)/(N-1) for i in range(0, N-1)]
+#     list.append(p_max)
+#     first = p_max/(1-p_max) * stats.entropy(list)
+#     second = 1.0/(1-p_max)*stats.entropy(p_max, 1-p_max)
+#     # print const, entropy
+#     return max(first, second)
 
-def sensitivity_add(N, p_max):
-    list = [(1-p_max)/(N-1) for i in range(0, N-1)]
-    list.append(p_max)
-    entropy = p_max * shanon_entropy_list(list)
-    if p_max <= 0.5:
-        const = shanon_entropy(p_max, 1-p_max)
-    else:
-        const = np.log(2)
-    # print const, entropy
-    return entropy, const, max(entropy, const)
+"""
+k is the minimum number of users per locations
+"""
+def sensitivity_add(C, p_max):
+    first = - p_max * p_max * np.log(p_max) - p_max * (1-p_max) * np.log(p_max * (1-p_max)/(C-p_max))
+    second = stats.entropy(p_max, 1-p_max)
+    # print first, "\t", second
+    return first, second, max(first, second)
 
+
+def sensitivity_k1(n, C):
+    k0 = np.log((n-1+0.0)/(n-1+C)) + (C + 0.0)/(n-1+C)*np.log(C)
+    k1 = np.log((n+0.0)/(n+C)) + (C + 0.0)/(n+C)*np.log(C)
+    k2 = np.log(1 + 1/(np.exp(np.log(n+1)*np.log(C)/(C-1) + np.log(np.log(C)/(C-1))) + 1))
+    return max(k0,k1,k2)
+
+
+def sensitivity_h1(n, C):
+    p_max = (C+0.0)/n
+    first = - p_max * p_max * np.log(p_max) - p_max * (1-p_max) * np.log((1-p_max)/(n-1))
+    return first
+
+# c_min = 20
+# n_max = 40
+# sen_max = 0
+# for c in range(1,c_min + 1):
+#     for n in range(n_max, n_max + 100):
+#         sen_h = sensitivity_h1(n, c)
+#         sen_k = sensitivity_k1(n, c)
+#         # print sen_h, sen_k, sen_h/sen_k
+#         if sen_k > sen_max:
+#             sen_max = sen_k
+#             print sen_max, c, n
+
+# print sensitivity_add(200, 2.0/200)[2] * 5
 
 def sensitivity_c(C, N):
     return C * math.log(N) / (N + C)
@@ -131,7 +146,7 @@ def vary_n(n):
 actual sensitivity of shannon entropy
 """
 def actual_sensitivity(l):
-    e = shanon_entropy_list(l)
+    e = stats.entropy(l)
     min_e = 1000000
     max_e = 0
 
@@ -139,7 +154,7 @@ def actual_sensitivity(l):
 
     for i in range(len(l)):
         removed_l = [l[j] for j in range(i) + range(i+1, len(l))]
-        tmp_e = shanon_entropy_list(removed_l)
+        tmp_e = stats.entropy(removed_l)
         # print tmp_e, removed_l
         max_e = max(tmp_e, max_e)
         min_e = min(tmp_e, min_e)
@@ -153,15 +168,15 @@ def actual_sensitivity(l):
 if False:
     P = 0.5
     C = 10
-    N = 50
-    for C in range(1,100,1):
-        print C, '\t', sensitivity_cn(C)
+    N = 100000
+    # for C in range(1,100,1):
+    #     print C, '\t', sensitivity_cn(C)
         # print C-C*np.log(C)+10
     # for n in range(1,100,1):
     #     print vary_n(n)
-    # for P in np.arange(0.02,0.21,0.02):
-    #     tuple = sensitivity_add(N, P)
-    #     print P, '\t', tuple[0], '\t', tuple[1], '\t', tuple[2]
+    for P in np.arange(0.02,0.21,0.02):
+        tuple = sensitivity_add(N, P)
+        print P, '\t', tuple[0], '\t', tuple[1], '\t', tuple[2]
     # for N in np.arange(1,100000,1000):
     #     tuple = sensitivity_add(N, P)
     #     print N, '\t', tuple[0], '\t', tuple[1], '\t', tuple[2]
@@ -318,7 +333,7 @@ def evalLimitCM2(params):
             # compute C, f_total
             f_total = [sum(locs[key].values()) for key in locs.keys() if len(locs[key].values()) >= p.K]
 
-            E_limit = [shanon_entropy_list(cut_list(locs[key].values(), C)) for key in locs.keys() if len(locs[key].values()) >= p.K]
+            E_limit = [stats.entropy(cut_list(locs[key].values(), C)) for key in locs.keys() if len(locs[key].values()) >= p.K]
 
             # global sensitivity
             sens = [sensitivity(len(f_total), float(C) / f_total[l]) for l in range(len(f_total))]
@@ -343,27 +358,28 @@ compute actual shannon entropy
 def actual_entropy(locs):
     E_actual = {}
     for lid in locs.keys():
-        # print lid, shanon_entropy_list(locs[lid].values())
-        E_actual[lid] = shanon_entropy_list(locs[lid].values())
-    print "average entropy", np.average([e for e in E_actual.values() if e > 0])
-    print "max entropy", max([e for e in E_actual.values() if e > 0])
-    print "min entropy", min([e for e in E_actual.values() if e > 0])
-    print "variance entropy", np.var([e for e in E_actual.values() if e > 0])
+        # print lid, stats.entropy(locs[lid].values())
+        E_actual[lid] = stats.entropy(locs[lid].values())
+    # print "average entropy", np.average([e for e in E_actual.values() if e > 0])
+    # print "max entropy", max([e for e in E_actual.values() if e > 0])
+    # print "min entropy", min([e for e in E_actual.values() if e > 0])
+    # print "variance entropy", np.var([e for e in E_actual.values() if e > 0])
     return E_actual
 
 def evalActualSensitivity(p):
 
     # compute C, f_total
     C = [max(p.locs[key].values()) for key in p.locs.keys() if len(p.locs[key].values()) >= p.K]
-    f_total = [sum(p.locs[key].values()) for key in p.locs.keys() if len(p.locs[key].values()) >= p.K]
 
     # global sensitivity
-    sens = [sensitivity(len(C), float(C[k]) / f_total[k]) for k in range(len(C))]
+    sens = [sensitivity_add(p.C, float((p.C + 0.0) / p.K))[2] for k in range(len(C))]
 
     # actual sensitivity
     sens_a = [actual_sensitivity(p.locs[key].values()) for key in p.locs.keys() if len(p.locs[key].values()) >= p.K]
 
-    print np.mean([sens[i]/sens_a[i] for i in range(len(sens))])
+    print sens
+    print sens_a
+    print np.mean([sens[i]/sens_a[i] for i in range(len(sens)) if sens_a[i] > 0])
     # print rmse(sens, sens_a)
 
 
@@ -447,37 +463,35 @@ This function throws data points into an equal-size grid and computes aggregated
 statistics associated with each grid cell
 """
 
-def cell_stats(p, sens):
+def cell_stats(p, locs, map_locs, sens):
     # calculate grid granularity
-    p.m = calculateGridSize(len(p.users), p.eps, sens)
 
-    print len(p.users), p.eps, sens, p.m
+    if Params.VARYING_GRID_SIZE:
+        p.m = calculateGridSize(len(p.users), p.eps, sens)
+        print len(p.users), p.eps, sens, p.m
 
     c_locs = {}
-    c_users = {}
-    c_map_locs = {}
+    # c_map_locs = {}
 
-    for lid in p.locs.keys():
-        if p.map_locs.get(lid) == None:
-            print lid
-        lat, lon = p.map_locs.get(lid)
+    for lid in locs.keys():
+        if map_locs.get(lid) == None:
+            print "not exist", lid
+        lat, lon = map_locs.get(lid)
         lat_idx = int((lat - p.x_min)/(p.x_max - p.x_min) * p.m)
         lon_idx = int((lon - p.y_min)/(p.y_max - p.y_min) * p.m)
         c_lid = lat_idx * p.m + lon_idx
 
         if c_locs.has_key(c_lid):
-            users_freqs = p.locs.get(lid)
+            users_freqs = locs.get(lid)
             for uid in users_freqs.keys():
                 if c_locs[c_lid].has_key(uid):
                     c_locs[c_lid][uid] = c_locs[c_lid][uid] + users_freqs[uid]
                 else:
                     c_locs[c_lid][uid] = users_freqs[uid]
         else:
-            c_locs[c_lid] = p.locs.get(lid)
+            c_locs[c_lid] = locs.get(lid)
 
-    c_users = transform(c_locs)
-
-    return c_locs, c_users, c_map_locs
+    return c_locs, transform(c_locs)#, c_map_locs
 
 """
 replace all values in the list by C if they are larger than C
@@ -533,12 +547,12 @@ def evalLimitC(params):
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
             p.seed = seed_list[j]
-            eps = eps_list[i]
+            p.eps = eps_list[i]
 
             E_limit = {}
             for lid in locs.keys():
                 if len(locs[lid].values()) >= 1:
-                    E_limit[lid] = shanon_entropy_list(cut_list(locs[lid].values(), p.C))
+                    E_limit[lid] = stats.entropy(cut_list(locs[lid].values(), p.C))
                 else:
                     print "!!! few users in this location !!!"
 
@@ -549,7 +563,7 @@ def evalLimitC(params):
             # noisy entropy is computed from rounded entropy
             E_noisy = {}
             for lid in E_limit.keys():
-                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, eps)
+                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, p.eps)
 
             res_cube[i, j, 0] = rmse(E_actual, E_noisy)
             res_cube[i, j, 1] = rmse(E_limit, E_noisy)
@@ -588,28 +602,24 @@ def evalLimitM(params):
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
             p.seed = seed_list[j]
-            eps = eps_list[i]
+            p.eps = eps_list[i]
 
             # compute C, f_total
             # f_total = [sum(p.locs[key].values()) for key in p.locs.keys() if len(p.locs[key].values()) >= p.K]
 
             E_limit = {}
             for lid in locs.keys():
-                if len(locs[lid].values()) >= p.K:
-                    E_limit[lid] = shanon_entropy_list(cut_list(locs[lid].values(), p.C))
+                if len(locs[lid].values()) >= 1:
+                    E_limit[lid] = stats.entropy(cut_list(locs[lid].values(), p.C))
                 else:
                     print "xxx"
-            # global sensitivity
-            # sens = [sensitivity(len(f_total), float(C) / f_total[l]) for l in range(len(f_total))]
-            # max_sen = max(sens)
-            global_sen = sensitivity_cn(float(p.C)) * p.M
 
-            # print len(E_limit), len(E_actual)
+            global_sen = sensitivity_cn(float(p.C)) * p.M
 
             # noisy entropy is computed from rounded entropy
             E_noisy = {}
             for lid in E_limit.keys():
-                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, eps)
+                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, p.eps)
 
             res_cube[i, j, 0] = rmse(E_actual, E_noisy)
             res_cube[i, j, 1] = rmse(E_limit, E_noisy)
@@ -623,46 +633,162 @@ def evalLimitM(params):
     np.savetxt(p.resdir + exp_name + '_' + str(p.M), res_summary, fmt='%.4f\t')
 
 """
-varying N
+varying K
 """
-def evalLimitN(params):
+def evalLimitK(params):
     """
     only consider locations with more than K users
     """
-    logging.info("evalLimitN")
-    exp_name = "evalLimitN"
-    methodList = ["RMSE_NA", "RMSE_CN", "RMSE_CA", "MRE_NA", "MRE_CN", "MRE_CA", "EDIT"]
+    logging.info("evalLimitK")
+    exp_name = "evalLimitK"
+    methodList = ["RMSE_NA", "RMSE_CN", "RMSE_CA", "MRE_NA", "MRE_CN", "MRE_CA", "RATIO_CELL", "RATIO_LOC"]
 
     p = params[0]
     global_sen = params[1]
     E_actual = params[2]
 
-    res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
-
     users = limit_M(p)
     locs = transform(users)
-    print "number of locations after limiting M to ", p.M, len(locs)
-    print "number of locations after limiting N to ", p.N, sum(len(locs[lid]) >= p.N for lid in locs.keys())
+
+    # print "number of locations after limiting M to", p.M, len(locs)
+    published_cells = sum(len(locs[lid]) >= p.K for lid in locs.keys())
+    published_locs = sum((len(locs[lid]) >= p.K) * len(locs[lid]) for lid in locs.keys())
+
+    valid_cells = sum(len(locs[lid]) >= p.k_min for lid in locs.keys())
+    valid_locs = sum((len(locs[lid]) >= p.k_min) * len(locs[lid]) for lid in locs.keys())
+    ratio_cell = published_cells * 100.0/valid_cells
+    ratio_loc = published_locs * 100.0/valid_locs
+    print "ratio of published cells/locations after limiting K to\t", p.K, "\t", ratio_cell, "\t", ratio_loc
+    # print "max users per location", max([len(locs[lid]) for lid in locs.keys()])
+
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
 
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
             p.seed = seed_list[j]
-            eps = eps_list[i]
-
-            # compute C, f_total
-            # f_total = [sum(p.locs[key].values()) for key in p.locs.keys() if len(p.locs[key].values()) >= p.K]
+            p.eps = eps_list[i]
 
             E_limit = {}
             for lid in locs.keys():
-                if len(locs[lid]) >= p.N:
-                    E_limit[lid] = shanon_entropy_list(cut_list(locs[lid].values(), p.C))
+                if len(locs[lid]) >= p.K:
+                    E_limit[lid] = stats.entropy(cut_list(locs[lid].values(), p.C))
                 # else:
                 #     E_limit[lid] = 0
 
             # noisy entropy is computed from rounded entropy
             E_noisy = {}
             for lid in E_limit.keys():
-                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, eps)
+                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, p.eps)
+
+            res_cube[i, j, 0] = rmse(E_actual, E_noisy)
+            res_cube[i, j, 1] = rmse(E_limit, E_noisy)
+            res_cube[i, j, 2] = rmse(E_actual, E_limit)
+            res_cube[i, j, 3] = mre(E_actual, E_noisy)
+            res_cube[i, j, 4] = mre(E_limit, E_noisy)
+            res_cube[i, j, 5] = mre(E_actual, E_limit)
+            res_cube[i, j, 6] = ratio_cell
+            res_cube[i, j, 7] = ratio_loc
+
+    res_summary = np.average(res_cube, axis=1)
+    np.savetxt(p.resdir + exp_name + '_' + str(p.K), res_summary, fmt='%.4f\t')
+
+"""
+varying KC
+"""
+def evalLimitKC(params):
+    """
+    only consider locations with more than K users
+    """
+    logging.info("evalLimitKC")
+    exp_name = "evalLimitKC"
+    methodList = ["RMSE_NA", "RMSE_CN", "RMSE_CA", "MRE_NA", "MRE_CN", "MRE_CA", "RATIO_CELL", "RATIO_LOC"]
+
+    p = params[0]
+    global_sen = params[1]
+    E_actual = params[2]
+
+    users = limit_M(p)
+    locs = transform(users)
+
+    published_cells = sum(len(locs[lid]) >= p.K for lid in locs.keys())
+    published_locs = sum((len(locs[lid]) >= p.K) * len(locs[lid]) for lid in locs.keys())
+
+    valid_cells = sum(len(locs[lid]) >= p.k_min for lid in locs.keys())
+    valid_locs = sum((len(locs[lid]) >= p.k_min) * len(locs[lid]) for lid in locs.keys())
+    ratio_cell = published_cells * 100.0/valid_cells
+    ratio_loc = published_locs * 100.0/valid_locs
+    print "ratio of published cells/locations after limiting K to\t", p.K, "\t", ratio_cell, "\t", ratio_loc
+
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
+
+    for j in range(len(seed_list)):
+        for i in range(len(eps_list)):
+            p.seed = seed_list[j]
+            p.eps = eps_list[i]
+
+            E_limit = {}
+            for lid in locs.keys():
+                if len(locs[lid]) >= p.K:
+                    E_limit[lid] = stats.entropy(cut_list(locs[lid].values(), p.C))
+                # else:
+                #     E_limit[lid] = 0
+
+            # noisy entropy is computed from rounded entropy
+            E_noisy = {}
+            for lid in E_limit.keys():
+                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, p.eps)
+
+            res_cube[i, j, 0] = rmse(E_actual, E_noisy)
+            res_cube[i, j, 1] = rmse(E_limit, E_noisy)
+            res_cube[i, j, 2] = rmse(E_actual, E_limit)
+            res_cube[i, j, 3] = mre(E_actual, E_noisy)
+            res_cube[i, j, 4] = mre(E_limit, E_noisy)
+            res_cube[i, j, 5] = mre(E_actual, E_limit)
+            res_cube[i, j, 6] = ratio_cell
+            res_cube[i, j, 7] = ratio_loc
+
+    res_summary = np.average(res_cube, axis=1)
+    np.savetxt(p.resdir + exp_name + '_' + str(p.C), res_summary, fmt='%.4f\t')
+
+"""
+varying KM
+"""
+def evalLimitKM(params):
+    """
+    only consider locations with more than K users
+    """
+    logging.info("evalLimitKM")
+    exp_name = "evalLimitKM"
+    methodList = ["RMSE_NA", "RMSE_CN", "RMSE_CA", "MRE_NA", "MRE_CN", "MRE_CA", "EDIT"]
+
+    p = params[0]
+    global_sen = params[1]
+    E_actual = params[2]
+
+    users = limit_M(p)
+    locs = transform(users)
+
+    print "number of locations after limiting M to ", p.M, len(locs)
+    print "number of locations after limiting K to ", p.K, sum(len(locs[lid]) >= p.K for lid in locs.keys())
+
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
+
+    for j in range(len(seed_list)):
+        for i in range(len(eps_list)):
+            p.seed = seed_list[j]
+            p.eps = eps_list[i]
+
+            E_limit = {}
+            for lid in locs.keys():
+                if len(locs[lid]) >= p.K:
+                    E_limit[lid] = stats.entropy(cut_list(locs[lid].values(), p.C))
+                # else:
+                #     E_limit[lid] = 0
+
+            # noisy entropy is computed from rounded entropy
+            E_noisy = {}
+            for lid in E_limit.keys():
+                E_noisy[lid] = noisyEntropy(E_limit[lid], global_sen, p.eps)
 
             res_cube[i, j, 0] = rmse(E_actual, E_noisy)
             res_cube[i, j, 1] = rmse(E_limit, E_noisy)
@@ -673,7 +799,8 @@ def evalLimitN(params):
             res_cube[i, j, 6] = 0#edit_distance(E_actual, E_noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    np.savetxt(p.resdir + exp_name + '_' + str(p.N), res_summary, fmt='%.4f\t')
+    np.savetxt(p.resdir + exp_name + '_' + str(p.M), res_summary, fmt='%.4f\t')
+
 
 
 def evalPSD(data, param):
@@ -751,7 +878,7 @@ def createGnuData(p, exp_name, var_list):
     """
     Post-processing output files to generate Gnuplot-friendly outcomes
     """
-    for col in range(7):
+    for col in range(8):
         out = open(p.resdir + exp_name + str(col), 'w')
         c = 0
         for eps in eps_list:
@@ -798,9 +925,9 @@ def expStats():
 
     p.select_dataset()
 
-    p.locs, p.C, p.f_total, p.users, p.map_locs = read_checkins("dataset/gowalla_NY.txt")
+    p.locs, p.users, p.map_locs = read_checkins("dataset/gowalla_NY.txt")
 
-    c_locs, c_users, c_map_locs = cell_stats(p)
+    c_locs, c_users = cell_stats(p)
 
     # for uid in c_users:
     #     print len(c_users.get(uid))
@@ -824,31 +951,6 @@ def expStats():
 
     # createGnuData2(p, "evalAll", eps_list)
 
-def expM():
-    logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
-    logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
-
-    p = Params(1000)
-
-    p.select_dataset()
-
-    p.locs, p.f_max, p.f_total, p.users, p.map_locs = read_checkins(p)
-
-    E_actual = actual_entropy(p.locs)
-
-    p.debug()
-
-    # pool = Pool(processes=len(eps_list))
-    # params = []
-    # for M in M_list:
-    #     # param = (p, M, E_actual)
-    #     # evalLimitM(param)
-    #     params.append((p, M, E_actual))
-    # pool.map(evalLimitM, params)
-    # pool.join()
-
-    createGnuData(p, "evalLimitM", M_list)
-
 def expC():
     logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
     logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
@@ -857,10 +959,8 @@ def expC():
 
     p.select_dataset()
 
-    p.locs, p.f_max, p.f_total, p.users, p.map_locs = read_checkins(p)
-
+    p.locs, p.users, p.map_locs = read_checkins(p)
     E_actual = actual_entropy(p.locs)
-
     p.debug()
 
     # pool = Pool(processes=len(eps_list))
@@ -868,14 +968,13 @@ def expC():
     for C in C_list:
         param = (p, C, E_actual)
         evalLimitC(param)
-        # params.append((p, C, E_actual))
+    #     params.append((p, C, E_actual))
     # pool.map(evalLimitC, params)
     # pool.join()
 
     createGnuData(p, "evalLimitC", C_list)
 
-
-def expN():
+def expM():
     logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
     logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
 
@@ -883,27 +982,112 @@ def expN():
 
     p.select_dataset()
 
-    p.locs, p.f_max, p.f_total, p.users, p.map_locs = read_checkins(p)
-
+    p.locs, p.users, p.map_locs = read_checkins(p)
+    E_actual = actual_entropy(p.locs)
     p.debug()
+
+    # pool = Pool(processes=len(eps_list))
+    # params = []
+    for M in M_list:
+        param = (p, M, E_actual)
+        evalLimitM(param)
+        # params.append((p, M, E_actual))
+    # pool.map(evalLimitM, params)
+    # pool.join()
+
+    createGnuData(p, "evalLimitM", M_list)
+
+def expK():
+    logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
+    logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
+
+    p = Params(1000)
+
+    p.select_dataset()
+
+    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.debug()
+
+    copy_locs = copy.deepcopy(p.locs)
+    copy_map_locs = copy.deepcopy(p.map_locs)
 
     # pool = Pool(processes=len(eps_list))
     # params = []
     for K in K_list:
         p.K = K
-        sens = sensitivity_add(p.K, float(p.C)/p.K)[2] * p.M
-        p.locs, p.users, c_map_locs = cell_stats(p, sens)
+        global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
+        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
         E_actual = actual_entropy(p.locs)
 
-        param = (p, sens, E_actual)
-        evalLimitN(param)
+        param = (p, global_sen, E_actual)
+        evalLimitK(param)
         # params.append((p, C, E_actual))
-    # pool.map(evalLimitN, params)
+    # pool.map(evalLimitK, params)
     # pool.join()
 
-    createGnuData(p, "evalLimitN", K_list)
+    createGnuData(p, "evalLimitK", K_list)
 
-def exp3():
+def expKC():
+    logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
+    logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
+
+    p = Params(1000)
+
+    p.select_dataset()
+
+    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.debug()
+
+    copy_locs = copy.deepcopy(p.locs)
+    copy_map_locs = copy.deepcopy(p.map_locs)
+
+    pool = Pool(processes=len(eps_list))
+    params = []
+    for C in C_list:
+        p.C = C
+        global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
+        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
+        E_actual = actual_entropy(p.locs)
+
+        param = (p, global_sen, E_actual)
+        evalLimitKC(param)
+        # params.append((p, global_sen, E_actual))
+    # pool.map(evalLimitK, params)
+    # pool.join()
+
+    createGnuData(p, "evalLimitKC", C_list)
+
+def expKM():
+    logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
+    logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
+
+    p = Params(1000)
+
+    p.select_dataset()
+
+    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.debug()
+
+    copy_locs = copy.deepcopy(p.locs)
+    copy_map_locs = copy.deepcopy(p.map_locs)
+
+    pool = Pool(processes=len(eps_list))
+    params = []
+    for M in M_list:
+        p.M = M
+        global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
+        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
+        E_actual = actual_entropy(p.locs)
+
+        param = (p, global_sen, E_actual)
+        evalLimitKM(param)
+        # params.append((p, global_sen, E_actual))
+    # pool.map(evalLimitK, params)
+    # pool.join()
+
+    createGnuData(p, "evalLimitKM", M_list)
+
+def expSensitivity():
 
     logging.basicConfig(level=logging.DEBUG, filename='./debug.log')
     logging.info(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + "  START")
@@ -912,7 +1096,7 @@ def exp3():
 
     p.select_dataset()
 
-    p.locs, p.C, p.f_total, p.users, p.map_locs = read_checkins(p)
+    p.locs, p.users, p.map_locs = read_checkins(p)
 
     evalActualSensitivity(p)
 
@@ -948,7 +1132,11 @@ def exp4():
 
 if __name__ == '__main__':
 
+    print "x"
     # expStats()
-    expC()
+    # expSensitivity()
+    # expC()
     # expM()
-    # expN()
+    # expK()
+    # expKC()
+    # expKM()

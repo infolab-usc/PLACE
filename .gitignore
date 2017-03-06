@@ -8,3 +8,9 @@ setup.py
 upload_data.sh
 upload_source.sh
 *.pyc
+log
+plot
+.DS_Store
+.dropbox
+debug.log
+

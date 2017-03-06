@@ -54,8 +54,9 @@ def read_checkins(p):
                 map_locs[loc_id] = (float (row[2]), float (row[3]))
 
     print min_x, min_y, max_x, max_y
+    p.f_max, p.f_total = f_max, f_total
     # print 'f_max, f_total', f_max, f_total
-    return locs, f_max, f_total, users, map_locs
+    return locs, users, map_locs
 
 # locs = read_checkins("gowalla_HW.txt")
 # print 'number of locs', len(locs.keys())
