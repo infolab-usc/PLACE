@@ -4,7 +4,7 @@ import math
 import numpy as np
 # # Basic parameters
 class Params(object):
-    DATASET = "syn100k1m"
+    DATASET = "gowallany"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -12,15 +12,17 @@ class Params(object):
     p_sigma = 0.5
     gamma = 0.5
     theta = 10
+    ONE_KM = 0.0089982311916  # convert km to degree
+    base = np.e
 
     def __init__(self, seed):
         self.dataset = ""
         self.resdir = ""
         self.locs = None
-        self.f_max = None
-        self.f_total = None
+        self.maxC = None
+        self.totalC = None
         self.users = None
-        self.map_locs = None
+        self.locDict = None
 
         self.C = 2
         self.M = 5
@@ -37,6 +39,14 @@ class Params(object):
 
     def select_dataset(self):
 
+        if Params.DATASET == "yelppx":
+            self.dataset = "../dataset/yelp_PX.txt"
+            self.resdir = "../output/"
+            self.x_min = 32.8768481
+            self.y_min = -112.875481
+            self.x_max = 33.806805
+            self.y_max = -111.671219
+
         if Params.DATASET == "gowallany":
             self.dataset = "../dataset/gowalla_NY.txt"
             self.resdir = "../output/"
@@ -44,6 +54,14 @@ class Params(object):
             self.y_min = -74.0270912647
             self.x_max = 40.7965600333
             self.y_max = -73.9228093667
+
+        if Params.DATASET == "gowallaau":
+            self.dataset = "../dataset/gowalla_AU.txt"
+            self.resdir = "../output/"
+            self.x_min = 30.087879
+            self.y_min = -98.010254
+            self.x_max = 30.682575
+            self.y_max = -97.451330
 
         if Params.DATASET == "gowallaca":
             self.dataset = "../dataset/gowalla_CA.txt"
@@ -87,12 +105,11 @@ class Params(object):
             self.x_max = 100
             self.y_max = 100
 
-
     def debug(self):
         print 'number of locs', len(self.locs.keys())
         print 'number of users', len(self.users)
         print 'average number of users per location', np.average([len(self.locs[lid]) for lid in self.locs.keys()])
         print 'average number of locations per user', np.average([len(self.users[uid]) for uid in self.users.keys()])
         print 'maximum number of locations per user', np.max([len(self.users[uid]) for uid in self.users.keys()])
-        print 'Maximum number of visits of a user contributes to a location', self.f_max
-        print 'Average number of visits of a user to a location', (self.f_total + 0.0)/len(self.locs)
+        print 'Maximum number of visits of a user contributes to a location', self.maxC
+        print 'Average number of visits of a user to a location', (self.totalC + 0.0) / len(self.locs)

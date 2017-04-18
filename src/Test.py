@@ -9,7 +9,7 @@ low = 1
 high = 100
 
 count = 0
-while True:
+while False:
     count = count + 1
     x = random.sample(range(low, high), N)
     x_c = cut_list(x, random.randint(low, N))

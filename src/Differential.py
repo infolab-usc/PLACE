@@ -1,4 +1,6 @@
 import numpy as np
+import math
+from scipy.stats import gamma, uniform
 
 
 class Differential(object):
@@ -11,6 +13,15 @@ class Differential(object):
 
     def getUniform(self, lo, hi, size=1):
         return np.random.uniform(lo, hi, size)
+
+    def getTwoPlanarNoise(self, radius=500.0, base_eps=2.0, LIMIT_NINETY_FIVE = False, NINETY_FIVE_DISTANCE=0.95):
+        r_gen = gamma(2., scale=radius/base_eps)
+        theta_gen = uniform(scale=2*math.pi)
+        r, theta = r_gen.rvs(), theta_gen.rvs()
+        if LIMIT_NINETY_FIVE and r > NINETY_FIVE_DISTANCE:
+            r_gen = gamma(2., scale=radius/base_eps, size=1000)
+            r = r_gen.rvs()
+        return (np.cos(theta) * r, np.sin(theta) * r)
 
     def getNoise(self, sens, eps):
         """Get simple Laplacian noise"""

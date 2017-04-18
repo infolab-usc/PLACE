@@ -11,7 +11,7 @@ from multiprocessing import Pool
 from Differential import Differential
 from Kd_standard import Kd_standard
 from Quad_standard import Quad_standard
-from LEParser import read_checkins
+from LEStats import readCheckins
 from KExp import KExp
 
 from Params import Params
@@ -42,12 +42,12 @@ K_list = [10,20,30,40,50,60,70,80,90,100]
 # print stats.entropy(2,3)
 # print stats.entropy(1,0)
 
-print stats.entropy([0.5, 0.05, 0.45])
-print stats.entropy([2,3,2,2,3])
+# print stats.entropy([0.5, 0.05, 0.45])
+# print stats.entropy([2,3,2,2,3])
 # x2 = stats.entropy([8,8,4])
 
-print stats.entropy([2,3,4], [4,6,8])
-print stats.entropy([4,6,8], [2,3,4])
+# print stats.entropy([2,3,4], [4,6,8])
+# print stats.entropy([4,6,8], [2,3,4])
 
 # print x1, x2
 # x3 = stats.entropy([8,8,8,7,6,5,4,3,2,1])
@@ -143,6 +143,20 @@ def vary_n(n):
     return n*(1-np.log(n))
 
 """
+compute actual shannon entropy
+"""
+def shannonEntropy(locs):
+    E_actual = {}
+    for lid in locs.keys():
+        # print lid, stats.entropy(locs[lid].values())
+        E_actual[lid] = stats.entropy(locs[lid].values())
+    # print "average entropy", np.average([e for e in E_actual.values() if e > 0])
+    # print "max entropy", max([e for e in E_actual.values() if e > 0])
+    # print "min entropy", min([e for e in E_actual.values() if e > 0])
+    # print "variance entropy", np.var([e for e in E_actual.values() if e > 0])
+    return E_actual
+
+"""
 actual sensitivity of shannon entropy
 """
 def actual_sensitivity(l):
@@ -199,6 +213,7 @@ def noisyEntropy(count, sens, epsilon):
         return count
     else:
         return count + differ.getNoise(sens, epsilon)
+
 
 """
 root mean square error
@@ -352,20 +367,6 @@ def evalLimitCM2(params):
     res_summary = np.average(res_cube, axis=1)
     np.savetxt(p.resdir + exp_name + '_CM_' + str(C), res_summary, fmt='%.4f\t')
 
-"""
-compute actual shannon entropy
-"""
-def actual_entropy(locs):
-    E_actual = {}
-    for lid in locs.keys():
-        # print lid, stats.entropy(locs[lid].values())
-        E_actual[lid] = stats.entropy(locs[lid].values())
-    # print "average entropy", np.average([e for e in E_actual.values() if e > 0])
-    # print "max entropy", max([e for e in E_actual.values() if e > 0])
-    # print "min entropy", min([e for e in E_actual.values() if e > 0])
-    # print "variance entropy", np.var([e for e in E_actual.values() if e > 0])
-    return E_actual
-
 def evalActualSensitivity(p):
 
     # compute C, f_total
@@ -387,14 +388,14 @@ def data_readin(p):
     """Read in spatial data and initialize global variables."""
     p.select_dataset()
     # data = np.genfromtxt(p.dataset, unpack=True)
-    p.locs, p.C, p.f_total, p.users, p.map_locs = read_checkins(p.dataset)
+    p.locs, p.C, p.f_total, p.users, p.locDict = readCheckins(p.dataset)
 
     data = np.ndarray(shape=(2,len(p.users)))
     userids = p.users.keys()
     for i in range (len(p.users)):
         loc_id = int(p.users[userids[i]].keys()[0])  # first loc_id
-        data[0][i] = p.map_locs[loc_id][0]
-        data[1][i] = p.map_locs[loc_id][1]
+        data[0][i] = p.locDict[loc_id][0]
+        data[1][i] = p.locDict[loc_id][1]
 
     p.NDIM, p.NDATA = data.shape[0], data.shape[1]
     Params.NDIM, Params.NDATA = p.NDIM, p.NDATA
@@ -424,74 +425,6 @@ def samplingL(user_locs, L):
 
     return sampled_user_locs
 
-"""
-translate from dict1 to dict_new
-"""
-def transform(dict_orig):
-    dict_new = {}
-    for id_orig in dict_orig.keys():
-        val_orig = dict_orig[id_orig] # {id, frequency}
-        for id_new in val_orig.keys():
-            if dict_new.has_key(id_new):
-                dict_new[id_new][id_orig] = val_orig[id_new]
-            else:
-                dict_new[id_new] = {id_orig : val_orig[id_new]}
-
-    return dict_new
-
-
-# dict_orig = {1:{1:2,2:3}, 2:{1:3,3:1}}
-# dict_new = transform(dict_orig)
-# print dict_new
-
-"""
-U is the number of users
-"""
-def calculateGridSize(U, eps, sens):
-    return max(4,int(math.sqrt(Params.theta * U/math.exp((-np.log(1-Params.p_sigma) * sens)/(eps * Params.gamma)))))
-
-# p = Params(1000)
-# for U in range(1000,100000,1000):
-#     print calculateGridSize(p, U, 1.0, 1)
-
-# print calculateGridSize(58000, 1.0, 3)
-
-
-
-"""
-This function throws data points into an equal-size grid and computes aggregated
-statistics associated with each grid cell
-"""
-
-def cell_stats(p, locs, map_locs, sens):
-    # calculate grid granularity
-
-    if Params.VARYING_GRID_SIZE:
-        p.m = calculateGridSize(len(p.users), p.eps, sens)
-        print len(p.users), p.eps, sens, p.m
-
-    c_locs = {}
-    # c_map_locs = {}
-
-    for lid in locs.keys():
-        if map_locs.get(lid) == None:
-            print "not exist", lid
-        lat, lon = map_locs.get(lid)
-        lat_idx = int((lat - p.x_min)/(p.x_max - p.x_min) * p.m)
-        lon_idx = int((lon - p.y_min)/(p.y_max - p.y_min) * p.m)
-        c_lid = lat_idx * p.m + lon_idx
-
-        if c_locs.has_key(c_lid):
-            users_freqs = locs.get(lid)
-            for uid in users_freqs.keys():
-                if c_locs[c_lid].has_key(uid):
-                    c_locs[c_lid][uid] = c_locs[c_lid][uid] + users_freqs[uid]
-                else:
-                    c_locs[c_lid][uid] = users_freqs[uid]
-        else:
-            c_locs[c_lid] = locs.get(lid)
-
-    return c_locs, transform(c_locs)#, c_map_locs
 
 """
 replace all values in the list by C if they are larger than C
@@ -859,7 +792,7 @@ def evalPSD(data, param):
             print sampled_loc_users
             print len(sampled_loc_users), np.mean([len(sampled_loc_users[i]) for i in sampled_loc_users.keys()])
 
-            E_actual = actual_entropy(sampled_loc_users, param.K)
+            E_actual = shannonEntropy(sampled_loc_users, param.K)
             print E_actual
             print len(E_actual)
 
@@ -914,6 +847,7 @@ def createGnuData2(p, exp_name, var_list):
             thisfile.close()
         out.close()
 
+
 """
 compute statistics
 """
@@ -925,9 +859,9 @@ def expStats():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins("dataset/gowalla_NY.txt")
+    p.locs, p.users, p.locDict = readCheckins("dataset/gowalla_NY.txt")
 
-    c_locs, c_users = cell_stats(p)
+    c_locs, c_users = cellStats(p)
 
     # for uid in c_users:
     #     print len(c_users.get(uid))
@@ -959,8 +893,8 @@ def expC():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
-    E_actual = actual_entropy(p.locs)
+    p.locs, p.users, p.locDict = readCheckins(p)
+    E_actual = shannonEntropy(p.locs)
     p.debug()
 
     # pool = Pool(processes=len(eps_list))
@@ -982,8 +916,8 @@ def expM():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
-    E_actual = actual_entropy(p.locs)
+    p.locs, p.users, p.locDict = readCheckins(p)
+    E_actual = shannonEntropy(p.locs)
     p.debug()
 
     # pool = Pool(processes=len(eps_list))
@@ -1005,19 +939,19 @@ def expK():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.locs, p.users, p.locDict = readCheckins(p)
     p.debug()
 
     copy_locs = copy.deepcopy(p.locs)
-    copy_map_locs = copy.deepcopy(p.map_locs)
+    copy_locDict = copy.deepcopy(p.locDict)
 
     # pool = Pool(processes=len(eps_list))
     # params = []
     for K in K_list:
         p.K = K
         global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
-        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
-        E_actual = actual_entropy(p.locs)
+        p.locs, p.users = cellStats(p, copy_locs, copy_locDict, global_sen)
+        E_actual = shannonEntropy(p.locs)
 
         param = (p, global_sen, E_actual)
         evalLimitK(param)
@@ -1035,19 +969,19 @@ def expKC():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.locs, p.users, p.locDict = readCheckins(p)
     p.debug()
 
     copy_locs = copy.deepcopy(p.locs)
-    copy_map_locs = copy.deepcopy(p.map_locs)
+    copy_locDict = copy.deepcopy(p.locDict)
 
     pool = Pool(processes=len(eps_list))
     params = []
     for C in C_list:
         p.C = C
         global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
-        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
-        E_actual = actual_entropy(p.locs)
+        p.locs, p.users = cellStats(p, copy_locs, copy_locDict, global_sen)
+        E_actual = shannonEntropy(p.locs)
 
         param = (p, global_sen, E_actual)
         evalLimitKC(param)
@@ -1065,19 +999,19 @@ def expKM():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.locs, p.users, p.locDict = readCheckins(p)
     p.debug()
 
     copy_locs = copy.deepcopy(p.locs)
-    copy_map_locs = copy.deepcopy(p.map_locs)
+    copy_locDict = copy.deepcopy(p.locDict)
 
     pool = Pool(processes=len(eps_list))
     params = []
     for M in M_list:
         p.M = M
         global_sen = sensitivity_add(p.C, float(p.C)/p.K)[2] * p.M
-        p.locs, p.users = cell_stats(p, copy_locs, copy_map_locs, global_sen)
-        E_actual = actual_entropy(p.locs)
+        p.locs, p.users = cellStats(p, copy_locs, copy_locDict, global_sen)
+        E_actual = shannonEntropy(p.locs)
 
         param = (p, global_sen, E_actual)
         evalLimitKM(param)
@@ -1096,7 +1030,7 @@ def expSensitivity():
 
     p.select_dataset()
 
-    p.locs, p.users, p.map_locs = read_checkins(p)
+    p.locs, p.users, p.locDict = readCheckins(p)
 
     evalActualSensitivity(p)
 
@@ -1130,9 +1064,19 @@ def exp4():
 
     evalPSD(data, param)
 
-if __name__ == '__main__':
+def testNoisyLocation():
+    RTH = (34.020412, -118.289936)
+    radius = 500.0  # default unit is meters
+    eps = np.log(2)
+    # l = radius*eps # higher base_eps gives less privacy
+    for i in range(100):
+        (x, y) = differ.getTwoPlanarNoise(radius, eps)
 
-    print "x"
+        print RTH[0] + x * Params.ONE_KM * 0.001, ',', RTH[1] + y * Params.ONE_KM*1.2833*0.001
+
+
+if __name__ == '__main__':
+    testNoisyLocation()
     # expStats()
     # expSensitivity()
     # expC()

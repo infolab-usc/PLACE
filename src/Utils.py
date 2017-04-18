@@ -2,6 +2,36 @@ __author__ = 'ubriela'
 
 import math
 import numpy as np
+import math
+from Params import Params
+import scipy.stats as stats
+
+def randomEntropy(n):
+    """
+    Capture the degree of predictability of the users' whereabouts if each location
+    is visited with equal probability
+    :param N: number of distinct locations visited by the user
+    :return:
+    """
+    return math.log(n, Params.base)
+
+def temporalUncorrelatedEntropy(pk):
+    """
+    characterize the heterogeneity of visitation patterns
+    :param pk:
+    :return:
+    """
+    return stats.entropy(pk, base=Params.base)
+
+def actualEntropy(pk):
+    """
+    depends not only on the frequency of visitation, but also the order in which the nodes
+    were visited and the time spent at each location, thus capturing the full spatiotemporal
+    order present in a person's mobility pattern.
+    :param pk:
+    :return:
+    """
+    # p(T') is the probability of finding a particular time-ordered subsequence T' in the trajectory T
 
 def distance(lat1, lon1, lat2, lon2):
     """
@@ -18,7 +48,6 @@ def distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     d = R * c
     return d
-
 
 def is_rect_cover(rect, loc):
     """
