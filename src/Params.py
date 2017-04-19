@@ -14,6 +14,12 @@ class Params(object):
     theta = 10
     ONE_KM = 0.0089982311916  # convert km to degree
     base = np.e
+    MAX_N = 100000
+    MIN_SENSITIVITY = 1e-3
+    MIN_C = 1
+    MAX_C = 20
+    DELTA = 1e-8
+    PRECISION = 1e-15
 
     def __init__(self, seed):
         self.dataset = ""

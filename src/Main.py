@@ -15,7 +15,6 @@ from LEStats import readCheckins
 from KExp import KExp
 
 from Params import Params
-# import editdistance
 import collections
 
 sys.path.append('/Users/ubriela/Dropbox/_USC/_Research/_Crowdsourcing/_Privacy/PSD/src/icde12')
@@ -88,11 +87,11 @@ def sensitivity_add(C, p_max):
     return first, second, max(first, second)
 
 
-def sensitivity_k1(n, C):
-    k0 = np.log((n-1+0.0)/(n-1+C)) + (C + 0.0)/(n-1+C)*np.log(C)
-    k1 = np.log((n+0.0)/(n+C)) + (C + 0.0)/(n+C)*np.log(C)
-    k2 = np.log(1 + 1/(np.exp(np.log(n+1)*np.log(C)/(C-1) + np.log(np.log(C)/(C-1))) + 1))
-    return max(k0,k1,k2)
+# def sensitivity_k1(n, C):
+#     k0 = np.log((n-1+0.0)/(n-1+C)) + (C + 0.0)/(n-1+C)*np.log(C)
+#     k1 = np.log((n+0.0)/(n+C)) + (C + 0.0)/(n+C)*np.log(C)
+#     k2 = np.log(1 + 1/(np.exp(np.log(n+1)*np.log(C)/(C-1) + np.log(np.log(C)/(C-1))) + 1))
+#     return max(k0,k1,k2)
 
 
 def sensitivity_h1(n, C):
@@ -213,60 +212,6 @@ def noisyEntropy(count, sens, epsilon):
         return count
     else:
         return count + differ.getNoise(sens, epsilon)
-
-
-"""
-root mean square error
-"""
-def rmse(actual, noisy):
-    noisy_vals = []
-    actual_vals = []
-    # print len(actual), actual
-    # print len(noisy), noisy
-    for lid in noisy.keys():
-        noisy_vals.append(noisy.get(lid))
-        if not actual.has_key(lid):
-            print lid
-        actual_vals.append(actual.get(lid))
-
-    # print len(actual_vals), actual_vals
-    # print len(noisy_vals), noisy_vals
-    return np.sqrt(((np.array(actual_vals) - np.array(noisy_vals)) ** 2).mean())
-
-"""
-mean relative error
-"""
-def mre(actual, noisy):
-    noisy_vals = []
-    actual_vals = []
-    for lid in noisy.keys():
-        noisy_vals.append(noisy.get(lid))
-        actual_vals.append(actual.get(lid))
-
-    absErr = np.abs(np.array(actual_vals) - np.array(noisy_vals))
-    idx_nonzero = np.where(np.array(actual_vals) != 0)
-    absErr_nonzero = absErr[idx_nonzero]
-    true_nonzero = np.array(actual_vals)[idx_nonzero]
-    relErr = absErr_nonzero / true_nonzero
-    return relErr.mean()
-
-
-"""
-root mean square error
-"""
-def edit_distance(actual, noisy):
-    actual_trim = {}
-    for lid in noisy.keys():
-        actual_trim[lid] = actual[lid]
-
-    ordered_noisy = collections.OrderedDict(sorted(noisy.items(), key=lambda t: t[1]))
-    ordered_actual = collections.OrderedDict(sorted(actual_trim.items(), key=lambda t: t[1]))
-
-    actual_str = map(int, ordered_actual.keys())
-    noisy_str = map(int, ordered_noisy.keys())
-    # print len(actual_str), actual_str
-    # print len(noisy_str), noisy_str
-    return editdistance.eval(noisy_str, actual_str)
 
 
 # actual = dict({})

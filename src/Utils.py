@@ -5,6 +5,11 @@ import numpy as np
 import math
 from Params import Params
 import scipy.stats as stats
+def CEps2Str(C, eps):
+    return "C" + str(C) + "_eps" + str(eps)
+
+def getSmoothSensitivityFile(C, eps):
+    return "../output/smoothsensitivity/" + CEps2Str (C, eps) + ".txt"
 
 def randomEntropy(n):
     """
