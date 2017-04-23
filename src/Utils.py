@@ -1,5 +1,7 @@
 __author__ = 'ubriela'
 
+from collections import defaultdict, Counter
+import random
 import math
 import numpy as np
 import math
@@ -10,6 +12,35 @@ def CEps2Str(C, eps):
 
 def getSmoothSensitivityFile(C, eps):
     return "../output/smoothsensitivity/" + CEps2Str (C, eps) + ".txt"
+
+def threshold(values, C):
+    """
+    Threshold all values in the list by C if they are larger than C
+
+    :param values: list of values
+    :param C: threshold
+    :return:
+    """
+    return [C if v > C else v for v in values]
+
+def samplingUsers(users, M):
+    """
+    For each user randomly select M locations
+    :param users:
+    :param M: maximum number of locations visited by a users
+    :return:
+    """
+    sampledUsers = defaultdict(Counter)
+    for uid, locs in users.iteritems():
+        if len(locs) <= M:
+            sampledUsers[uid] = locs
+        else: # sampling
+            # sampledLocIds = random.sample(list(locs.keys()), M)
+            sampledLocs = Counter([(lid, locs[lid]) for lid in random.sample(list(locs.keys()), M)])
+            # for lid in sampledLocIds:
+            #     sampledLocs[lid] = locs[lid]
+            sampledUsers[uid] = sampledLocs
+    return sampledUsers
 
 def randomEntropy(n):
     """

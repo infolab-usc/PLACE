@@ -22,6 +22,7 @@ def distribution_pdf(users):
     uncorEns = []
     for c in users.itervalues():
         vals = c.values()
+
         if len(vals) > 1:
             randEns.append(randomEntropy(len(vals)))
             uncorEns.append(temporalUncorrelatedEntropy(vals))

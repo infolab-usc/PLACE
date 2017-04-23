@@ -5,7 +5,7 @@ from LEStats import readCheckins, cellStats, entropyStats, otherStats, transform
 from plots import distribution_pdf, line_graph
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str
+from Utils import CEps2Str, samplingUsers
 from Metrics import KLDivergence, KLDivergence2
 
 class TestFunctions(unittest.TestCase):
@@ -20,22 +20,26 @@ class TestFunctions(unittest.TestCase):
         filter_gowalla(self.p)
         filter_yelp(self.p)
 
-    @unittest.skip
+    # @unittest.skip
     def testLEParser(self):
         self.p.locs, self.p.users, self.p.locDict = readCheckins(self.p)
-        distribution_pdf(self.p.locs)
+        # distribution_pdf(self.p.locs)
         distribution_pdf(self.p.users)
-        # entropyStats(self.p.locs)
+        self.p.users = samplingUsers(self.p.users, Params.MAX_M)
+        distribution_pdf(self.p.users)
+        entropyStats(self.p.locs)
+
+
         # self.p.maxC, self.p.maxM = otherStats(self.p.locs, self.p.users)
 
         # discretize
-        cells = cellStats(self.p)
+        # cells = cellStats(self.p)
         # entropyStats(cells)
         # self.p.maxC, self.p.maxM = otherStats(cells, transformDict(cells))
-        distribution_pdf(cells)
-        distribution_pdf(transformDict(cells))
+        # distribution_pdf(cells)
+        # distribution_pdf(transformDict(cells))
 
-    # @unittest.skip
+    @unittest.skip
     def testLEStats(self):
         nx = range(1,100+1)
         C, eps, K = 10, 1.0, 50

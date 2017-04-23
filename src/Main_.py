@@ -342,30 +342,10 @@ def data_readin(p):
     return data
 
 
-"""
-For each user randomly select L locations
-"""
-def samplingL(user_locs, L):
-    sampled_user_locs = {}
-    for uid in user_locs.keys():
-        locs = user_locs[uid]
-        if len(locs) <= L:
-            sampled_user_locs[uid] = locs
-        else: # sampling
-            new_locs = {}
-            for i in range(L):
-                v = locs.popitem()
-                new_locs[v[0]] = v[1]
-            sampled_user_locs[uid] = new_locs
-
-    return sampled_user_locs
 
 
-"""
-replace all values in the list by C if they are larger than C
-"""
-def cut_list(l, C):
-    return [C if v > C else v for v in l]
+
+
 
 """
 for users who visits more than M locations,

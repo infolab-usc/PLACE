@@ -18,6 +18,7 @@ class Params(object):
     MIN_SENSITIVITY = 1e-3
     MIN_C = 1
     MAX_C = 20
+    MAX_M = 20
     DELTA = 1e-8
     PRECISION = 1e-15
 

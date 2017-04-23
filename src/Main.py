@@ -3,9 +3,10 @@ import math
 import logging
 import time
 import sys
+import random
 import numpy as np
 import copy
-import random
+
 import scipy.stats as stats
 from multiprocessing import Pool
 from Differential import Differential
@@ -38,11 +39,17 @@ K_list = [10,20,30,40,50,60,70,80,90,100]
 
 differ = Differential(1000)
 
-"""
-Add Laplace noise to Shannon entropy
-"""
+
 def noisyEntropy(count, sens, epsilon):
-    if epsilon < 10 ** (-6):
+    """
+    Add Laplace noise to Shannon entropy
+    :param count: actual count
+    :param sens: sensitivity
+    :param epsilon: privacy loss
+    :return:
+    """
+    if epsilon < Params.MIN_SENSITIVITY/100:
         return count
     else:
         return count + differ.getNoise(sens, epsilon)
+
