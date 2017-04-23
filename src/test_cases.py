@@ -35,7 +35,7 @@ class TestFunctions(unittest.TestCase):
         distribution_pdf(cells)
         distribution_pdf(transformDict(cells))
 
-    @unittest.skip
+    # @unittest.skip
     def testLEStats(self):
         nx = range(1,100+1)
         C, eps, K = 10, 1.0, 50
@@ -70,7 +70,8 @@ class TestFunctions(unittest.TestCase):
 
         print getSmoothSensitivity([1,2,3,4], [0.1])
 
+    @unittest.skip
     def testMetrics(self):
         P = [1,2,3,4,5,6,7,8,9]
         Q = [1,2,4,8,7,6,5,8,9]
-        self.assertEqual(KLDivergence(P, Q), KLDivergence2(P, Q))
+        self.assertEqual(True, abs(KLDivergence2(P, Q) - KLDivergence(P, Q)) < 1e-6)

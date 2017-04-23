@@ -6,6 +6,15 @@ from Params import Params
 from Utils import getSmoothSensitivityFile
 from Utils import CEps2Str
 
+def frequencySensitivity(C, M):
+    """
+    Add/remove one user affects M locations, each location affects up to C checkins
+    :param C:
+    :param M:
+    :return:
+    """
+    return C*M
+
 def localSensitivity(C, n):
     """
     Local sensitivity depends on C and the number of users visiting the location n

@@ -1,7 +1,7 @@
 __author__ = 'ubriela'
 
 
-from Main import shanon_entropy_list, cut_list
+from Main_ import shanon_entropy_list, cut_list
 import random
 
 N = 20
