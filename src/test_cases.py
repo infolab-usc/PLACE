@@ -1,13 +1,13 @@
 import unittest
 
 from filter_data import filter_gowalla, filter_yelp
-from LEStats import readCheckins, cellStats, entropyStats, otherStats, transformDict
+from LEStats import readCheckins, cellStats, entropyStats, otherStats
 from plots import distribution_pdf, line_graph
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str, samplingUsers
+from Utils import CEps2Str, samplingUsers, transformDict
 from Metrics import KLDivergence, KLDivergence2
-
+from Main import evalSS, actualEntropy
 class TestFunctions(unittest.TestCase):
 
     def setUp(self):
@@ -21,11 +21,18 @@ class TestFunctions(unittest.TestCase):
         filter_yelp(self.p)
 
     # @unittest.skip
+    def testMain(self):
+        self.p.locs, self.p.users, self.p.locDict = readCheckins(self.p)
+        E_actual = actualEntropy(self.p.locs)
+        evalSS(self.p, E_actual)
+
+    @unittest.skip
     def testLEParser(self):
         self.p.locs, self.p.users, self.p.locDict = readCheckins(self.p)
         # distribution_pdf(self.p.locs)
         distribution_pdf(self.p.users)
         self.p.users = samplingUsers(self.p.users, Params.MAX_M)
+        print len(self.p.users), len(users)
         distribution_pdf(self.p.users)
         entropyStats(self.p.locs)
 

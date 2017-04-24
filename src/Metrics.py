@@ -41,7 +41,11 @@ def rmse(actual, noisy):
     :param noisy:
     :return:
     """
-    return math.sqrt(mse(actual, noisy))
+    # print len(actual)
+    # print len(noisy)
+    tmp = mean_squared_error(actual, noisy)
+    # print "Tmp", tmp
+    return math.sqrt(float(tmp))
 
     # noisy_vals = []
     # actual_vals = []

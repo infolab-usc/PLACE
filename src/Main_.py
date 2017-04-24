@@ -347,31 +347,6 @@ def data_readin(p):
 
 
 
-"""
-for users who visits more than M locations,
-choose the first M only and throw away the rest
-"""
-def limit_M(p):
-    users = {}
-
-    for uid in p.users.keys():
-        # print len(p.users.get(uid))
-        if len(p.users.get(uid)) <= p.M:
-            users[uid] = p.users.get(uid)
-        else:
-            # obtain the first M locations
-            count = 0
-            locs = {}
-            for lid, freq in p.users.get(uid).iteritems():
-                locs[lid] = freq
-                count = count + 1
-                if count == p.M:
-                    break
-            users[uid] = locs
-
-    return users
-
-
 
 """
 varying C

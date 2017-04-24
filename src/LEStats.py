@@ -65,15 +65,6 @@ def otherStats(users, locs):
     print "maxC, maxM", maxC, maxM
     return maxC, maxM
 
-"""
-convert from origDict to newDict
-"""
-def transformDict(origDict):
-    newDict = defaultdict(Counter)
-    for origId, orgCounter in origDict.iteritems():
-        for newId, freq in orgCounter.iteritems():
-            newDict[newId].update(Counter({origId : freq}))
-    return newDict
 
 
 # dict_orig = {1:{1:2,2:3}, 2:{1:3,3:1}}

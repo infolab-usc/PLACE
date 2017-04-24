@@ -7,6 +7,24 @@ import numpy as np
 import math
 from Params import Params
 import scipy.stats as stats
+from Differential import Differential
+
+differ = Differential(1000)
+
+
+def noisyEntropy(count, sens, epsilon):
+    """
+    Add Laplace noise to Shannon entropy
+    :param count: actual count
+    :param sens: sensitivity
+    :param epsilon: privacy loss
+    :return:
+    """
+    if epsilon < Params.MIN_SENSITIVITY/100:
+        return count
+    else:
+        return count + differ.getNoise(sens, epsilon)
+
 def CEps2Str(C, eps):
     return "C" + str(C) + "_eps" + str(eps)
 
@@ -35,12 +53,20 @@ def samplingUsers(users, M):
         if len(locs) <= M:
             sampledUsers[uid] = locs
         else: # sampling
-            # sampledLocIds = random.sample(list(locs.keys()), M)
-            sampledLocs = Counter([(lid, locs[lid]) for lid in random.sample(list(locs.keys()), M)])
-            # for lid in sampledLocIds:
-            #     sampledLocs[lid] = locs[lid]
+            sampledLocIds = random.sample(list(locs.keys()), M)
+            sampledLocs = dict([(lid, locs[lid]) for lid in sampledLocIds])
             sampledUsers[uid] = sampledLocs
     return sampledUsers
+
+"""
+convert from origDict to newDict
+"""
+def transformDict(origDict):
+    newDict = defaultdict(Counter)
+    for origId, orgCounter in origDict.iteritems():
+        for newId, freq in orgCounter.iteritems():
+            newDict[newId].update(Counter({origId : freq}))
+    return newDict
 
 def randomEntropy(n):
     """
@@ -59,7 +85,10 @@ def temporalUncorrelatedEntropy(pk):
     """
     return stats.entropy(pk, base=Params.base)
 
-def actualEntropy(pk):
+def entropy(pk):
+    return temporalUncorrelatedEntropy(pk)
+
+# def actualEntropy(pk):
     """
     depends not only on the frequency of visitation, but also the order in which the nodes
     were visited and the time spent at each location, thus capturing the full spatiotemporal
