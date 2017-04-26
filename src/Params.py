@@ -21,6 +21,8 @@ class Params(object):
     MAX_M = 20
     DELTA = 1e-8
     PRECISION = 1e-15
+    DEFAULT_ENTROPY = 0.0
+    GRID_SIZE = 1000
 
     def __init__(self, seed):
         self.dataset = ""
@@ -30,9 +32,11 @@ class Params(object):
         self.totalC = None
         self.users = None
         self.locDict = None
+        self.cellDict = None
 
+        self.radius = 500.0  # default unit is meters
         self.C = 2
-        self.M = 5
+        self.M = 20
         self.K = 50 # only publish locations with at least K users
         self.k_min = 10 # only consider locations with at least k_min users
 

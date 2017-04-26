@@ -6,7 +6,10 @@ import numpy as np
 import collections
 from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score
 
-def KLDivergence(P, Q):
+def formatRes(f):
+    '{:06.4f}'.format(f)
+
+def KLDivergence2(P, Q):
     """
     Returns the KL divergence, K(P || Q) - the amount of information lost when Q is used to approximate P
     :param P:
@@ -22,10 +25,10 @@ def KLDivergence(P, Q):
         divergence += probP[i] * math.log(probP[i]/probQ[i], Params.base)
     return divergence
 
-def KLDivergence2(pk, pq):
+def KLDivergence(pk, pq):
     return stats.entropy(pk, pq, Params.base)
 
-def mse(actual, noisy):
+def MSE(actual, noisy):
     """
     Return mean square error
     :param actual:
@@ -34,7 +37,7 @@ def mse(actual, noisy):
     """
     mean_squared_error(actual, noisy)
 
-def rmse(actual, noisy):
+def RMSE(actual, noisy):
     """
     Return root mean square error
     :param actual:
@@ -60,7 +63,7 @@ def rmse(actual, noisy):
     # print len(actual_vals), actual_vals
     # print len(noisy_vals), noisy_vals
 
-def mre(actual, noisy):
+def MRE(actual, noisy):
     """
     Return mean relative error
     :param actual:

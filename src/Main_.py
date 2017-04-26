@@ -954,19 +954,8 @@ def exp4():
 
     evalPSD(data, param)
 
-def testNoisyLocation():
-    RTH = (34.020412, -118.289936)
-    radius = 500.0  # default unit is meters
-    eps = np.log(2)
-    # l = radius*eps # higher base_eps gives less privacy
-    for i in range(100):
-        (x, y) = differ.getTwoPlanarNoise(radius, eps)
-
-        print RTH[0] + x * Params.ONE_KM * 0.001, ',', RTH[1] + y * Params.ONE_KM*1.2833*0.001
-
 
 if __name__ == '__main__':
-    testNoisyLocation()
     # expStats()
     # expSensitivity()
     # expC()

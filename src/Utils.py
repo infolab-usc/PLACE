@@ -9,10 +9,57 @@ from Params import Params
 import scipy.stats as stats
 from Differential import Differential
 
-differ = Differential(1000)
 
+def round2Grid(point, cell_size, x_offset, y_offset):
+    """
+    Round the coordinates of a point to the points of a grid.
+    :param point: The moint to migrate.
+    :param cell_size: Size of the grid to round towards (ndarray)
+    :return: The migrated point
+    """
+    xy = np.array([point[0], point[1]]) - np.array([x_offset, y_offset])
+    new_xy = np.round(xy / cell_size) * cell_size + np.array([x_offset, y_offset])
 
-def noisyEntropy(count, sens, epsilon):
+    return new_xy
+
+def euclideanToRadian(radian):
+    """
+    Convert from euclidean scale to radian scale
+    :param radian:
+    :return:
+    """
+    return (radian[0] * Params.ONE_KM * 0.001, radian[1] * Params.ONE_KM * 1.2833 * 0.001)
+
+def perturbedPoint(point, p):
+    """
+    Perturbed point with 2D Laplace noise
+    :param point:
+    :param p:
+    :param eps:
+    :return:
+    """
+    differ = Differential(p.seed)
+    (x, y) = differ.getTwoPlanarNoise(p.radius, p.eps * p.M)
+    pp = noisyPoint(point, (x,y))
+    u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
+    v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / Params.GRID_SIZE
+    rad = euclideanToRadian((u, v))
+    cell_size = np.array([rad[0], rad[1]])
+    roundedPoint = round2Grid(pp, cell_size, p.x_min, p.y_min)
+    return roundedPoint
+    # print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
+
+def noisyPoint(point, noise):
+    """
+    Add 2D noise to a point
+    :param point: actual coordinates
+    :param noise: in euclidean distance
+    :return:
+    """
+    coordDelta = euclideanToRadian(noise)
+    return (point[0] + coordDelta[0], point[1] + coordDelta[1])
+
+def noisyCount(count, sens, epsilon, seed):
     """
     Add Laplace noise to Shannon entropy
     :param count: actual count
@@ -20,6 +67,21 @@ def noisyEntropy(count, sens, epsilon):
     :param epsilon: privacy loss
     :return:
     """
+    differ = Differential(seed)
+    if epsilon < Params.MIN_SENSITIVITY / 100:
+        return count
+    else:
+        return count + differ.getNoise(sens, epsilon)
+
+def noisyEntropy(count, sens, epsilon, seed):
+    """
+    Add Laplace noise to Shannon entropy
+    :param count: actual count
+    :param sens: sensitivity
+    :param epsilon: privacy loss
+    :return:
+    """
+    differ = Differential(seed)
     if epsilon < Params.MIN_SENSITIVITY/100:
         return count
     else:
@@ -100,7 +162,7 @@ def entropy(pk):
 
 def distance(lat1, lon1, lat2, lon2):
     """
-    Distance between two geographical location
+    Distance between two geographical location (km)
     """
     R = 6371  # km
     dLat = math.radians(abs(lat2 - lat1))
@@ -113,6 +175,8 @@ def distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     d = R * c
     return d
+
+# print distance(34.020412, -118.289936, 34.021969, -118.279983)
 
 def is_rect_cover(rect, loc):
     """

@@ -78,6 +78,32 @@ def calculateGridSize(U, eps, sens):
     return max(4,int(math.sqrt(Params.theta * U/math.exp((-np.log(1-Params.p_sigma) * sens)/(eps * Params.gamma)))))
 
 
+def cellId2Coord(cellId, p):
+    """
+    Convert from cell id to lat/lon
+    :param cellId:
+    :param p:
+    :return:
+    """
+    lat_idx = cellId/p.m
+    lon_idx = cellId - lat_idx * p.m
+    lat = float(lat_idx)/p.m * (p.x_max - p.x_min) + p.x_min
+    lon = float(lon_idx)/p.m * (p.y_max - p.y_min) + p.y_min
+    return (lat, lon)
+
+def coord2CellId(point, p):
+    """
+    Convert from lat/lon to cell id
+    :param point:
+    :param p:
+    :return:
+    """
+    lat, lon = point[0], point[1]
+    lat_idx = int((lat - p.x_min) / (p.x_max - p.x_min) * p.m)
+    lon_idx = int((lon - p.y_min) / (p.y_max - p.y_min) * p.m)
+    cellId = lat_idx * p.m + lon_idx
+    return cellId
+
 """
 This function throws data points into an equal-size grid and computes aggregated
 statistics associated with each grid cell
@@ -93,11 +119,12 @@ def cellStats(p, sens=1):
 
     for lid in p.locs.keys():
         if not p.locDict.get(lid): print "not exist", lid
-        lat, lon = p.locDict.get(lid)
-        lat_idx = int((lat - p.x_min)/(p.x_max - p.x_min) * p.m)
-        lon_idx = int((lon - p.y_min)/(p.y_max - p.y_min) * p.m)
-        cellId = lat_idx * p.m + lon_idx
-
+        # lat, lon = p.locDict.get(lid)
+        # lat_idx = int((lat - p.x_min)/(p.x_max - p.x_min) * p.m)
+        # lon_idx = int((lon - p.y_min)/(p.y_max - p.y_min) * p.m)
+        # cellId = lat_idx * p.m + lon_idx
+        cellId = coord2CellId(p.locDict.get(lid), p)
         cells[cellId].update(p.locs[lid])
 
     return cells
+

@@ -1,4 +1,5 @@
 import unittest
+import logging
 
 from filter_data import filter_gowalla, filter_yelp
 from LEStats import readCheckins, cellStats, entropyStats, otherStats
@@ -7,13 +8,18 @@ from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitiv
 from Params import Params
 from Utils import CEps2Str, samplingUsers, transformDict
 from Metrics import KLDivergence, KLDivergence2
-from Main import evalSS, actualEntropy
+from Main import evalSS, actualEntropy, evalBL, evalGeoI
+from Differential import Differential
+
+import numpy as np
+
 class TestFunctions(unittest.TestCase):
 
     def setUp(self):
         # init parameters
         self.p = Params(1000)
         self.p.select_dataset()
+        self.log = logging.getLogger("debug.log")
 
     @unittest.skip
     def test_filter_gowalla(self):
@@ -23,8 +29,17 @@ class TestFunctions(unittest.TestCase):
     # @unittest.skip
     def testMain(self):
         self.p.locs, self.p.users, self.p.locDict = readCheckins(self.p)
+
+        # discretize
+        self.p.locs = cellStats(self.p)
+        self.p.users = transformDict(self.p.locs)
+        # distribution_pdf(self.p.locs)
+
         E_actual = actualEntropy(self.p.locs)
-        evalSS(self.p, E_actual)
+        # evalSS(self.p, E_actual)
+        # evalBL(self.p, E_actual)
+        evalGeoI(self.p, E_actual)
+
 
     @unittest.skip
     def testLEParser(self):
@@ -32,7 +47,6 @@ class TestFunctions(unittest.TestCase):
         # distribution_pdf(self.p.locs)
         distribution_pdf(self.p.users)
         self.p.users = samplingUsers(self.p.users, Params.MAX_M)
-        print len(self.p.users), len(users)
         distribution_pdf(self.p.users)
         entropyStats(self.p.locs)
 
@@ -86,3 +100,13 @@ class TestFunctions(unittest.TestCase):
         P = [1,2,3,4,5,6,7,8,9]
         Q = [1,2,4,8,7,6,5,8,9]
         self.assertEqual(True, abs(KLDivergence2(P, Q) - KLDivergence(P, Q)) < 1e-6)
+
+    @unittest.skip
+    def testDifferential(self):
+        differ = Differential(1000)
+        RTH = (34.020412, -118.289936)
+        radius = 500.0  # default unit is meters
+        eps = np.log(2)
+        for i in range(100):
+            (x, y) = differ.getTwoPlanarNoise(radius, eps)
+            print (str(RTH[0] + x * Params.ONE_KM * 0.001) + ',' + str(RTH[1] + y * Params.ONE_KM*1.2833*0.001))
