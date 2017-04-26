@@ -35,7 +35,7 @@ class Params(object):
         self.cellDict = None
 
         self.radius = 500.0  # default unit is meters
-        self.C = 2
+        self.C = 1
         self.M = 20
         self.K = 50 # only publish locations with at least K users
         self.k_min = 10 # only consider locations with at least k_min users

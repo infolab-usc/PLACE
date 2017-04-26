@@ -36,8 +36,8 @@ class TestFunctions(unittest.TestCase):
         # distribution_pdf(self.p.locs)
 
         E_actual = actualEntropy(self.p.locs)
-        # evalSS(self.p, E_actual)
-        # evalBL(self.p, E_actual)
+        evalSS(self.p, E_actual)
+        evalBL(self.p, E_actual)
         evalGeoI(self.p, E_actual)
 
 
