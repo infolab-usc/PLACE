@@ -33,12 +33,12 @@ class TestFunctions(unittest.TestCase):
         # discretize
         self.p.locs = cellStats(self.p)
         self.p.users = transformDict(self.p.locs)
-        # distribution_pdf(self.p.locs)
+        distribution_pdf(self.p.locs)
 
         E_actual = actualEntropy(self.p.locs)
         evalSS(self.p, E_actual)
         evalBL(self.p, E_actual)
-        evalGeoI(self.p, E_actual)
+        # evalGeoI(self.p, E_actual)
 
 
     @unittest.skip

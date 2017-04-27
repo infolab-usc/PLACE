@@ -45,7 +45,7 @@ def actualEntropy(locs):
     :param locs:
     :return:
     """
-    return dict([(lid, entropy(freqs.values())) for lid, freqs in locs.iteritems()])
+    return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
 
 def normalizeEntropy(e):
     # return max(0, e)
@@ -56,7 +56,7 @@ Smoooth sensitivity
 def evalSS(p, E_actual):
     logging.info("evalSS")
     exp_name = "evalSS"
-    methodList = [KLDivergence, RMSE]
+    methodList = [RMSE]
 
     res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
 
@@ -76,7 +76,7 @@ def evalSS(p, E_actual):
             for lid, counter in locs.iteritems():
                 if len(counter) >= 1:
                     limitFreqs = threshold(counter.values(), p.C)
-                    print len(ssList), len(limitFreqs)
+                    # print len(ssList), len(limitFreqs)
                     smoothSens = ssList[min(len(limitFreqs) - 1, len(ssList) - 1)]
                     E_noisy[lid] = normalizeEntropy(noisyEntropy(entropy(limitFreqs), smoothSens, p.eps, p.seed)) #
 
@@ -97,7 +97,7 @@ Add noise to each frequency
 def evalBL(p, E_actual):
     logging.info("evalBL")
     exp_name = "evalBL"
-    methodList = [KLDivergence, RMSE]
+    methodList = [RMSE]
 
     res_cube = np.zeros((len(eps_list), len(seed_list), len(methodList)))
 
@@ -188,4 +188,4 @@ def testDifferential():
         # print (str(pp[0]) + ',' + str(pp[1]))
         print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
 
-testDifferential()
+# testDifferential()

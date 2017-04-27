@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_sc
 def formatRes(f):
     '{:06.4f}'.format(f)
 
-def KLDivergence2(P, Q):
+def KLDivergence(P, Q):
     """
     Returns the KL divergence, K(P || Q) - the amount of information lost when Q is used to approximate P
     :param P:
@@ -25,7 +25,7 @@ def KLDivergence2(P, Q):
         divergence += probP[i] * math.log(probP[i]/probQ[i], Params.base)
     return divergence
 
-def KLDivergence(pk, pq):
+def KLDivergence2(pk, pq):
     return stats.entropy(pk, pq, Params.base)
 
 def MSE(actual, noisy):
