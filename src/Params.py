@@ -1,6 +1,5 @@
 __author__ = 'ubriela'
 
-import math
 import numpy as np
 # # Basic parameters
 class Params(object):
@@ -14,15 +13,17 @@ class Params(object):
     theta = 10
     ONE_KM = 0.0089982311916  # convert km to degree
     base = np.e
-    MAX_N = 100000
     MIN_SENSITIVITY = 1e-3
-    MIN_C = 1
-    MAX_C = 20
-    MAX_M = 20
+    MAX_C_SS = 20 # used for precompute SS
+
+    MAX_N = 1e+6
+    MAX_C = 1e+3 # maximum number of visits of a user to a location (used for generate syn data)
+    MAX_M = 1e+2 # maximum of maximum number of locations of a user (used for generate syn data)
     DELTA = 1e-8
     PRECISION = 1e-15
     DEFAULT_ENTROPY = 0.0
     GRID_SIZE = 1000
+    TOP_K = 1000
 
     def __init__(self, seed):
         self.dataset = ""
@@ -41,7 +42,7 @@ class Params(object):
         self.k_min = 10 # only consider locations with at least k_min users
 
         self.m = 100 # granularity of equal-size grid cell
-        self.eps = 1.0  # epsilon
+        self.eps = 5.0  # epsilon
         self.seed = seed # used in generating noisy counts
 
         self.Percent = 0.3  # budget allocated for split

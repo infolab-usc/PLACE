@@ -8,7 +8,24 @@ import math
 from Params import Params
 import scipy.stats as stats
 from Differential import Differential
+import heapq
+def topKValues(k, values):
+    """
+    Return top k largest values and their indices from a list
+    :param k:
+    :param values:
+    :return:
+    """
 
+    # h = [(i, v) for i, v in enumerate(values[:k])]
+    # heapq.heapify(h)
+    # if len(values) > k:
+    #     for i, val in enumerate(values[k:]):
+    #         heapq.heappushpop(h, (i + k, val))
+    # return h
+
+
+    return heapq.nlargest(k, [(val, i) for i, val in enumerate(values)])
 
 def round2Grid(point, cell_size, x_offset, y_offset):
     """
@@ -150,14 +167,17 @@ def temporalUncorrelatedEntropy(pk):
 def entropy(pk):
     return temporalUncorrelatedEntropy(pk)
 
+# print entropy([1, 1000000, 1, 1, 1, 1, 1, 1, 1, 1, 1,1,1,1,1,1,1,1,1,1,1,1])
+
+"""
+depends not only on the frequency of visitation, but also the order in which the nodes
+were visited and the time spent at each location, thus capturing the full spatiotemporal
+order present in a person's mobility pattern.
+:param pk:
+:return:
+"""
 # def actualEntropy(pk):
-    """
-    depends not only on the frequency of visitation, but also the order in which the nodes
-    were visited and the time spent at each location, thus capturing the full spatiotemporal
-    order present in a person's mobility pattern.
-    :param pk:
-    :return:
-    """
+
     # p(T') is the probability of finding a particular time-ordered subsequence T' in the trajectory T
 
 def distance(lat1, lon1, lat2, lon2):

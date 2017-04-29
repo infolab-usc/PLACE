@@ -77,8 +77,8 @@ def precomputeSmoothSensitivity(eps):
     :param eps:
     :return:
     """
-    print eps, Params.MIN_C, Params.MAX_C
-    for C in range(Params.MIN_C, Params.MAX_C + 1):
+    print eps, Params.MAX_C_SS
+    for C in range(1, Params.MAX_C_SS + 1):
         print "precomputeSmoothSensitivity ", C
         outputFile = getSmoothSensitivityFile(C, eps)
         with open(outputFile, "a") as f:

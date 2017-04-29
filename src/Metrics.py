@@ -5,11 +5,52 @@ import numpy as np
 # import editdistance
 import collections
 from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score
+from enum import Enum
+import sklearn.metrics as metrics
+from Utils import topKValues
 
 def formatRes(f):
     '{:06.4f}'.format(f)
 
-def KLDivergence(P, Q):
+
+class LEType(Enum):
+    Sparse = 1
+    Medium = 2
+    Dense = 3
+
+def typeLE(le):
+    if 0 <= le < 3:
+        return LEType.Sparse
+    elif 3 <= le < 6:
+        return LEType.Medium
+    else:
+        return LEType.Dense
+
+def CatScore(true, predicted):
+    """
+    Return precision score
+    :param true:
+    :param predicted:
+    :return:
+    """
+    trueValues = [typeLE(t).value for t in true]
+    predictedValues = [typeLE(p).value for p in predicted]
+    return metrics.precision_score(trueValues, predictedValues, average="micro")
+
+def TopK(true, predicted):
+    """
+    return precision score
+    :param true:
+    :param predicted:
+    :return:
+    """
+    trueTopKIndices = set([t[1] for t in topKValues(Params.TOP_K, true)])
+    predictedTopKIndices = set([t[1] for t in topKValues(Params.TOP_K, predicted)])
+    return float(len(trueTopKIndices & predictedTopKIndices)) /len(trueTopKIndices)
+    # return metrics.precision_score(trueTopKIndices, predictedTopKIndices, average="micro")
+
+
+def KLDiv(P, Q):
     """
     Returns the KL divergence, K(P || Q) - the amount of information lost when Q is used to approximate P
     :param P:
