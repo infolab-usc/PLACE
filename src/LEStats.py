@@ -20,10 +20,9 @@ def readCheckins(param):
     min_x, min_y, max_x, max_y = 90, 180, -90, -180
     data = np.loadtxt(param.dataset, dtype='str', delimiter=DELIM)
 
-    user_d, loc_d, locDict = defaultdict(Counter), defaultdict(Counter), {}
-    for i in range(data.shape[0]):
+    loc_d, locDict = defaultdict(Counter), {}
+    for i in xrange(data.shape[0]):
         userId, locId, lat, lon = str(data[i][0]), str(data[i][1]), float(data[i][2]), float(data[i][3])
-        user_d[userId].update([locId])
         loc_d[locId].update([userId])
         locDict[locId] = (lat, lon)
         min_x, min_y = min(min_x, lat), min(min_y, lon)
@@ -31,10 +30,10 @@ def readCheckins(param):
 
     print "Dataset ", param.dataset
     print "Number of locations ", len(loc_d)
-    print "Number of users ", len(user_d)
     print "MBR ", min_x, min_y, max_x, max_y
 
-    return loc_d, user_d, locDict
+    return loc_d, locDict
+
 
 def entropyStats(locs):
     """

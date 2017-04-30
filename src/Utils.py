@@ -9,6 +9,15 @@ from Params import Params
 import scipy.stats as stats
 from Differential import Differential
 import heapq
+
+def actualEntropy(locs):
+    """
+    Compute actual shannon entropy from a set of locations
+    :param locs:
+    :return:
+    """
+    return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
+
 def topKValues(k, values):
     """
     Return top k largest values and their indices from a list
@@ -108,7 +117,7 @@ def CEps2Str(C, eps):
     return "C" + str(C) + "_eps" + str(eps)
 
 def getSmoothSensitivityFile(C, eps):
-    return "../output/smoothsensitivity/" + CEps2Str (C, eps) + ".txt"
+    return "../output/smooth/" + CEps2Str (C, eps) + ".txt"
 
 def threshold(values, C):
     """

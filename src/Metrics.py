@@ -61,7 +61,7 @@ def KLDiv(P, Q):
     sump, sumq = float(sum(P)), float(sum(Q))
     probP, probQ = [p/sump for p in P], [q/sumq for q in Q]
 
-    for i in range(len(probP)):
+    for i in xrange(len(probP)):
         if probP[i] < Params.PRECISION or probQ[i] < Params.PRECISION: continue
         divergence += probP[i] * math.log(probP[i]/probQ[i], Params.base)
     return divergence

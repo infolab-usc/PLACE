@@ -1,9 +1,11 @@
 __author__ = 'ubriela'
 
 import numpy as np
+import math
+
 # # Basic parameters
 class Params(object):
-    DATASET = "gowallany"
+    DATASET = "sparse"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -13,17 +15,18 @@ class Params(object):
     theta = 10
     ONE_KM = 0.0089982311916  # convert km to degree
     base = np.e
-    MIN_SENSITIVITY = 1e-3
-    MAX_C_SS = 20 # used for precompute SS
+    MIN_SENSITIVITY = 1e-4*5
+    MAX_C_SS = 100 # used for precompute SS
 
     MAX_N = 1e+6
-    MAX_C = 1e+3 # maximum number of visits of a user to a location (used for generate syn data)
-    MAX_M = 1e+2 # maximum of maximum number of locations of a user (used for generate syn data)
+    MAX_C = 1e+4 # maximum number of visits of a user to a location (used for generate syn data)
+    MAX_M = 1e+3 # maximum of maximum number of locations of a user (used for generate syn data)
     DELTA = 1e-8
     PRECISION = 1e-15
     DEFAULT_ENTROPY = 0.0
     GRID_SIZE = 1000
-    TOP_K = 1000
+    TOP_K = 100
+    MAX_ENTROPY = math.log(MAX_N, base)
 
     def __init__(self, seed):
         self.dataset = ""
@@ -37,12 +40,12 @@ class Params(object):
 
         self.radius = 500.0  # default unit is meters
         self.C = 2
-        self.M = 10
+        self.M = 5
         self.K = 50 # only publish locations with at least K users
         self.k_min = 10 # only consider locations with at least k_min users
 
         self.m = 100 # granularity of equal-size grid cell
-        self.eps = 5.0  # epsilon
+        self.eps = 1.0  # epsilon
         self.seed = seed # used in generating noisy counts
 
         self.Percent = 0.3  # budget allocated for split
@@ -50,6 +53,17 @@ class Params(object):
         self.splitScheme = 'expo'  # exponential mechanism
 
     def select_dataset(self):
+        if Params.DATASET == "sparse":
+            self.dataset = "../dataset/sparse.txt"
+            self.resdir = "../output/"
+
+        if Params.DATASET == "medium":
+            self.dataset = "../dataset/medium.txt"
+            self.resdir = "../output/"
+
+        if Params.DATASET == "dense":
+            self.dataset = "../dataset/dense.txt"
+            self.resdir = "../output/"
 
         if Params.DATASET == "yelppx":
             self.dataset = "../dataset/yelp_PX.txt"

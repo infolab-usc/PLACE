@@ -10,7 +10,7 @@ import copy
 import scipy.stats as stats
 from Metrics import KLDiv, RMSE, CatScore, TopK
 from Utils import samplingUsers, transformDict, threshold, entropy, CEps2Str, noisyEntropy, noisyCount, noisyPoint, round2Grid, distance, euclideanToRadian, perturbedPoint
-from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
+from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity
 from Differential import Differential
 from LEStats import cellId2Coord, coord2CellId
 from multiprocessing import Pool
@@ -25,7 +25,10 @@ import sys
 
 sys.path.append('/Users/ubriela/Dropbox/_USC/_Research/_Crowdsourcing/_Privacy/PSD/src/icde12')
 
-eps_list = [0.1, 0.5, 1.0, 5.0, 10.0]
+# eps_list = [0.1, 0.5, 1.0, 5.0, 10.0]
+
+eps_list = [0.1, 0.4, 0.7, 1.0]
+
 
 seed_list = [9110, 4064, 6903]
 # seed_list = [9110, 4064, 6903, 7509, 5342, 3230, 3584, 7019, 3564, 6456]
@@ -41,28 +44,30 @@ K_list = [10,20,30,40,50,60,70,80,90,100]
 
 metricList = [CatScore, TopK, KLDiv, RMSE]
 
-
-def actualEntropy(locs):
+def normalizeEntropy(e):
     """
-    Compute actual shannon entropy from a set of locations
-    :param locs:
+    Post-processing
+    :param e:
     :return:
     """
-    return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
+    return min(Params.MAX_ENTROPY, abs(e))
 
-def normalizeEntropy(e):
-    # return max(0, e)
-    return abs(e)
+def normalizeFrequency(f):
+    """
+    Post-processing
+    :param f:
+    :return:
+    """
+    return min(Params.MAX_C, abs(f))
 
-def perturbedLocationEntropy(p, method="SS"):
+def perturbedLocationEntropy(p, ss, method="SS"):
     E_noisy = defaultdict()
     sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
     locs = transformDict(sampledUsers)
 
     if method == "SS":
         # smooth sensitivity
-        ss = getSmoothSensitivity([p.C], [p.eps])
-        ssList = [v for v in ss[CEps2Str(p.C, p.eps)]]
+        ssList = ss[CEps2Str(p.C, p.eps)]
         for lid, counter in locs.iteritems():
             if len(counter) >= 1:
                 limitFreqs = threshold(counter.values(), p.C)
@@ -75,15 +80,15 @@ def perturbedLocationEntropy(p, method="SS"):
         for lid, counter in locs.iteritems():
             if len(counter) >= 1:
                 limitFreqs = threshold(counter.values(), p.C)  # thresholding
-                noisyFreqs = [noisyCount(freq, sensitivity, p.eps, p.seed) for freq in limitFreqs]
-                E_noisy[lid] = entropy([abs(f) for f in noisyFreqs])  # freq >= 0
+                noisyFreqs = [normalizeFrequency(noisyCount(freq, sensitivity, p.eps, p.seed)) for freq in limitFreqs]
+                E_noisy[lid] = entropy([f for f in noisyFreqs])  # freq >= 0
 
     return E_noisy
 
 """
 Smoooth sensitivity
 """
-def evalSS(p, E_actual):
+def evalSS(p, E_actual, ss):
     exp_name = sys._getframe().f_code.co_name
     logging.info(exp_name)
     res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
@@ -97,8 +102,7 @@ def evalSS(p, E_actual):
             p.eps = eps_list[i]
 
             # smooth sensitivity
-            ss = getSmoothSensitivity([p.C], [p.eps])
-            ssList = [v for v in ss[CEps2Str(p.C, p.eps)]]
+            ssList = ss[CEps2Str(p.C, p.eps)]
 
             E_noisy = defaultdict()
             for lid, counter in locs.iteritems():
@@ -117,7 +121,7 @@ def evalSS(p, E_actual):
 
     res_summary = np.average(res_cube, axis=1)
     # res_summary_str = np.insert(res_summary.astype(str), 0, methodList, axis=0)
-    np.savetxt(p.resdir + p.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 """
 Add noise to each frequency
@@ -142,8 +146,8 @@ def evalBL(p, E_actual):
             for lid, counter in locs.iteritems():
                 if len(counter) >= 1:
                     limitFreqs = threshold(counter.values(), p.C)  # thresholding
-                    noisyFreqs = [noisyCount(freq, sensitivity, p.eps, p.seed) for freq in limitFreqs]
-                    E_noisy[lid] = entropy([abs(f) for f in noisyFreqs]) # freq >= 0
+                    noisyFreqs = [normalizeFrequency(noisyCount(freq, sensitivity, p.eps, p.seed)) for freq in limitFreqs]
+                    E_noisy[lid] = entropy([f for f in noisyFreqs]) # freq >= 0
 
             actual, noisy = [], []
             for lid, e in E_actual.iteritems():
@@ -153,7 +157,7 @@ def evalBL(p, E_actual):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    np.savetxt(p.resdir + p.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 
 """
@@ -194,7 +198,7 @@ def evalGeoI(p, E_actual):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    np.savetxt(p.resdir + p.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 
 def testDifferential():

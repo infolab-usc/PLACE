@@ -56,7 +56,7 @@ def smoothSensitivity(C, n, eps, delta):
     beta = eps / (2.0 * math.log(2.0 / delta, math.e))
     stopCond1, stopCond2 = False, False
     maxSS = 0
-    for k in range(Params.MAX_N):
+    for k in xrange(int(Params.MAX_N)):
         currSS = 0
         if not stopCond1:
             ls = localSensitivity(C,  max(1, n - k))
@@ -77,13 +77,11 @@ def precomputeSmoothSensitivity(eps):
     :param eps:
     :return:
     """
-    print eps, Params.MAX_C_SS
     for C in range(1, Params.MAX_C_SS + 1):
-        print "precomputeSmoothSensitivity ", C
         outputFile = getSmoothSensitivityFile(C, eps)
-        with open(outputFile, "a") as f:
+        with open(outputFile, "w") as f:
             lines = ""
-            for n in range(1, Params.MAX_N):
+            for n in xrange(1, int(Params.MAX_N)):
                 ss = smoothSensitivity(C, n, eps, Params.DELTA)
                 if ss < Params.MIN_SENSITIVITY: break
                 lines += str(n) + "\t" + str(ss) + "\n"
@@ -100,9 +98,7 @@ def getSmoothSensitivity(C_list, eps_list):
     dict = defaultdict(list)
     for C in C_list:
         for eps in eps_list:
-            key = CEps2Str(C, eps)
             inputFile = getSmoothSensitivityFile(C, eps)
             data = np.loadtxt(inputFile, dtype=float, delimiter="\t")
-            value = [v for v in data[:,1]]
-            dict[key] = value
+            dict[CEps2Str(C, eps)] = [v for v in data[:,1]]
     return dict

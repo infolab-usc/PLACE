@@ -6,48 +6,58 @@ from LEStats import readCheckins, cellStats, entropyStats, otherStats
 from plots import distribution_pdf, line_graph, scatter_LE
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str, samplingUsers, transformDict, topKValues
+from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
-from Main import evalSS, actualEntropy, evalBL, evalGeoI, perturbedLocationEntropy
+from Main import evalSS, evalBL, evalGeoI, perturbedLocationEntropy
 from Differential import Differential
 import sklearn.metrics as metrics
 import numpy as np
 from DataGen import generateData, writeData, readData
+from multiprocessing import Pool
 
 class TestFunctions(unittest.TestCase):
-    # @unittest.skip
+
     def setUp(self):
         # init parameters
-        self.log = logging.getLogger("debug.log")
         self.p = Params(1000)
         self.p.select_dataset()
 
-        # self.p.locs, self.p.users, self.p.locDict = readCheckins(self.p)
+        self.log = logging.getLogger("debug.log")
 
-        self.p.locs = readData("../output/dense.txt")
+        # load precomputed smooth sensitivity
+        c_list = range(1, 21)
+        eps_list = [0.1, 0.4, 0.7, 1.0]
+        self.ss = getSmoothSensitivity(c_list, eps_list)
+
+        if self.p.DATASET in ["sparse", "medium", "dense"]: # synthetic
+            self.p.locs = readData(self.p.dataset)
+        else: # real
+            self.p.locs, self.p.locDict = readCheckins(self.p)
+
         self.p.users = transformDict(self.p.locs)
 
-    # @unittest.skip
-    def testMain(self):
         # Discretize
         # self.p.locs = cellStats(self.p)
         # self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
-        E_actual = actualEntropy(self.p.locs)
+        self.E_actual = actualEntropy(self.p.locs)
+
+    # @unittest.skip
+    def testMain(self):
 
         # Visualization
-        le = sorted(list(E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
-        locIds = [t[0] for t in le]
-        LEVals = [t[1] for t in le]
-        scatter_LE(LEVals, "Location Id", "Entropy")
+        # le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
+        # locIds = [t[0] for t in le]
+        # LEVals = [t[1] for t in le]
+        # scatter_LE(LEVals, "Location Id", "Entropy")
+        #
+        # E_noisy = perturbedLocationEntropy(self.p, self.ss, "SS")
+        # perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
+        # scatter_LE(perturbedLEVals, "Location Id", "Entropy")
 
-        E_noisy = perturbedLocationEntropy(self.p, "SS")
-        perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
-        scatter_LE(perturbedLEVals, "Location Id", "Entropy")
-
-        # evalSS(self.p, E_actual)
-        # evalBL(self.p, E_actual)
+        evalSS(self.p, self.E_actual, self.ss)
+        evalBL(self.p, self.E_actual)
         # evalGeoI(self.p, E_actual)
 
 
@@ -73,7 +83,7 @@ class TestFunctions(unittest.TestCase):
     @unittest.skip
     def testLEStats(self):
         nx = range(1,100+1)
-        C, eps, K = 10, 1.0, 50
+        C, eps, K = 2, 1.0, 50
 
         # Baseline sensitivity (max C)
         max_C = 100
@@ -85,25 +95,43 @@ class TestFunctions(unittest.TestCase):
         gsy = [gs] * len(nx)
 
         # smooth sensitivity
-        ss = getSmoothSensitivity([C], [eps])
-        ssy = [v * 2 for v in ss[CEps2Str(C, eps)][:100]]
+        ssy = [v * 2 for v in self.ss[CEps2Str(C, eps)][:100]]
 
         # local sensitivity
         K = 20
         ls = localSensitivity(C, K)
         lsy = [ls] * len(nx)
+
+        # vary n (all bounds)
         ny = [max_gsy, gsy, ssy, lsy]
         markers = ["o", "-", "--", "+"]
         legends = ["Global (Max C)", "Global (Limit C)", "Smooth", "Local"]
         line_graph(nx, ny, markers, legends, "Number of users (n)", "Sensitivity")
 
+        # vary C
+        eps_list = [0.1, 0.5, 1.0, 5.0, 10.0]
+        c_list = range(1, 21)
+        n = 100
+        ss_list = [[self.ss[CEps2Str(c, eps)][n - 1] for c in c_list] for eps in eps_list]
+
+        markers = ["o", "-", "--", "+", "x"]
+        legends = ["Eps=" + str(eps) for eps in eps_list]
+        line_graph(c_list, ss_list, markers, legends, "C", "Sensitivity")
+
+        # vary n
+        c = 10
+        ss_list = [[self.ss[CEps2Str(c, eps)][n - 1] for n in nx] for eps in eps_list]
+        line_graph(nx, ss_list, markers, legends, "Number of users (n)", "Sensitivity")
+
     @unittest.skip
     def testLEBounds(self):
-        eps_list = [0.4, 0.7]
-        for eps in eps_list:
-            precomputeSmoothSensitivity(eps)
-
-        # print getSmoothSensitivity([1,2,3,4], [0.1])
+        # precompute smooth sensitivity
+        eps_list = [0.1, 0.4, 0.5, 0.7, 1.0, 5.0, 10.0]
+        pool = Pool(processes=len(eps_list))
+        pool.map(precomputeSmoothSensitivity, eps_list)
+        pool.join()
+        # for eps in eps_list:
+        #     precomputeSmoothSensitivity(eps)
 
     @unittest.skip
     def testMetrics(self):
@@ -145,10 +173,12 @@ class TestFunctions(unittest.TestCase):
     @unittest.skip
     def testDataGen(self):
         SPARSE_N = int(self.p.MAX_N / 10)
+        MEDIUM_N = int(self.p.MAX_N)
         DENSE_N = int(self.p.MAX_N * 10)
 
         np.random.seed(self.p.seed)
-        writeData(generateData(1e+3, SPARSE_N, self.p.MAX_M, self.p.MAX_C, 2), "../output/sparse.txt")
-        writeData(generateData(1e+3, DENSE_N, self.p.MAX_M, self.p.MAX_C, 2), "../output/dense.txt")
+        # writeData(generateData(1e+3, SPARSE_N, Params.MAX_M, Params.MAX_C, 2), "../dataset/sparse.txt")
+        # writeData(generateData(1e+3, MEDIUM_N, Params.MAX_M, Params.MAX_C, 2), "../dataset/medium.txt")
+        writeData(generateData(1e+3, DENSE_N, Params.MAX_M, Params.MAX_C, 2), "../dataset/dense.txt")
 
-        readData("../output/sparse.txt")
+        # readData("../dataset/sparse.txt")

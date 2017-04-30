@@ -7,7 +7,7 @@ import numpy as np
 
 def line_graph(xvals, yvals, markers, legends, xlabel, ylabel):
     for i in range(len(yvals)):
-        plt.plot(xvals, yvals[i], markers[i], color='black')
+        plt.plot(xvals, yvals[i], markers[i], color='black', markerfacecolor='none')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend(legends, loc='upper right')
