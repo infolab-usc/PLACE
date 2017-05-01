@@ -18,6 +18,14 @@ def actualEntropy(locs):
     """
     return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
 
+def actualDiversity(locs):
+    """
+    Compute actual diversity entropy from a set of locations
+    :param locs:
+    :return:
+    """
+    return dict([(lid, randomEntropy(len(counter))) for lid, counter in locs.iteritems()])
+
 def topKValues(k, values):
     """
     Return top k largest values and their indices from a list

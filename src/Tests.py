@@ -6,7 +6,7 @@ from LEStats import readCheckins, cellStats, entropyStats, otherStats
 from plots import distribution_pdf, line_graph, scatter_LE
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy
+from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy, actualDiversity
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
 from Main import evalSS, evalBL, evalGeoI, perturbedLocationEntropy
 from Differential import Differential
@@ -42,22 +42,26 @@ class TestFunctions(unittest.TestCase):
         # distribution_pdf(self.p.locs)
 
         self.E_actual = actualEntropy(self.p.locs)
+        self.D_actual = actualDiversity(self.p.locs)
 
     # @unittest.skip
     def testMain(self):
 
         # Visualization
-        # le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
-        # locIds = [t[0] for t in le]
-        # LEVals = [t[1] for t in le]
-        # scatter_LE(LEVals, "Location Id", "Entropy")
-        #
+        le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
+        locIds = [t[0] for t in le]
+        LEVals = [t[1] for t in le]
+        scatter_LE(LEVals, "Location Id", "Entropy")
+
+        divVals = [self.D_actual[id] for id in locIds]
+        scatter_LE(divVals, "Location Id", "Diversity")
+
         # E_noisy = perturbedLocationEntropy(self.p, self.ss, "SS")
         # perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
         # scatter_LE(perturbedLEVals, "Location Id", "Entropy")
-
-        evalSS(self.p, self.E_actual, self.ss)
-        evalBL(self.p, self.E_actual)
+        #
+        # evalSS(self.p, self.E_actual, self.ss)
+        # evalBL(self.p, self.E_actual)
         # evalGeoI(self.p, E_actual)
 
 
