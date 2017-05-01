@@ -3,12 +3,12 @@ import logging
 
 from filter_data import filter_gowalla, filter_yelp
 from LEStats import readCheckins, cellStats, entropyStats, otherStats
-from plots import distribution_pdf, line_graph, scatter_LE
+from plots import distribution_pdf, line_graph, scatter
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
 from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy, actualDiversity
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
-from Main import evalSS, evalBL, evalGeoI, perturbedLocationEntropy
+from Main import evalSS, evalBL, evalGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
 from Differential import Differential
 import sklearn.metrics as metrics
 import numpy as np
@@ -48,22 +48,29 @@ class TestFunctions(unittest.TestCase):
     def testMain(self):
 
         # Visualization
-        le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
-        locIds = [t[0] for t in le]
-        LEVals = [t[1] for t in le]
-        scatter_LE(LEVals, "Location Id", "Entropy")
-
-        divVals = [self.D_actual[id] for id in locIds]
-        scatter_LE(divVals, "Location Id", "Diversity")
+        # le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
+        # locIds = [t[0] for t in le]
+        # LEVals = [t[1] for t in le]
+        # scatter_LE(LEVals, "Location Id", "Entropy")
 
         # E_noisy = perturbedLocationEntropy(self.p, self.ss, "SS")
         # perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
         # scatter_LE(perturbedLEVals, "Location Id", "Entropy")
         #
-        # evalSS(self.p, self.E_actual, self.ss)
+        evalSS(self.p, self.E_actual, self.ss)
         # evalBL(self.p, self.E_actual)
         # evalGeoI(self.p, E_actual)
 
+        # div = sorted(list(self.D_actual.iteritems()), key=lambda x:x[1], reverse=True)
+        # locIds = [t[0] for t in div]
+        # divVals = [t[1] for t in div]
+        # scatter(divVals, "Location Id", "Diversity")
+        #
+        # D_noisy = perturbedDiversity(self.p)
+        # perturbedDVals = [D_noisy.get(id, Params.DEFAULT_DIVERSITY) for id in locIds]
+        # scatter(perturbedDVals, "Location Id", "Diversity")
+
+        evalDiv(self.p, self.E_actual)
 
     @unittest.skip
     def testLEParser(self):

@@ -19,9 +19,9 @@ class LEType(Enum):
     Dense = 3
 
 def typeLE(le):
-    if 0 <= le < 3:
+    if 0 <= le < 4:
         return LEType.Sparse
-    elif 3 <= le < 6:
+    elif 4 <= le < 8:
         return LEType.Medium
     else:
         return LEType.Dense

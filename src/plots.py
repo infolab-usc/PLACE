@@ -13,7 +13,7 @@ def line_graph(xvals, yvals, markers, legends, xlabel, ylabel):
     plt.legend(legends, loc='upper right')
     plt.show()
 
-def scatter_LE(LEVals, xlabel, ylabel):
+def scatter(LEVals, xlabel, ylabel):
     plt.scatter(range(len(LEVals)), LEVals, marker="+")
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)

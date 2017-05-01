@@ -5,7 +5,7 @@ import math
 
 # # Basic parameters
 class Params(object):
-    DATASET = "sparse"
+    DATASET = "dense"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -23,10 +23,10 @@ class Params(object):
     MAX_M = 1e+3 # maximum of maximum number of locations of a user (used for generate syn data)
     DELTA = 1e-8
     PRECISION = 1e-15
-    DEFAULT_ENTROPY = 0.0
+    DEFAULT_ENTROPY = DEFAULT_DIVERSITY = 0.0
     GRID_SIZE = 1000
     TOP_K = 100
-    MAX_ENTROPY = math.log(MAX_N, base)
+    MAX_ENTROPY = MAX_DIVERSITY = math.log(MAX_N, base)
 
     def __init__(self, seed):
         self.dataset = ""

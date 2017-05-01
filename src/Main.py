@@ -9,7 +9,7 @@ import copy
 
 import scipy.stats as stats
 from Metrics import KLDiv, RMSE, CatScore, TopK
-from Utils import samplingUsers, transformDict, threshold, entropy, CEps2Str, noisyEntropy, noisyCount, noisyPoint, round2Grid, distance, euclideanToRadian, perturbedPoint
+from Utils import samplingUsers, transformDict, threshold, entropy, randomEntropy, CEps2Str, noisyEntropy, noisyCount, noisyPoint, round2Grid, distance, euclideanToRadian, perturbedPoint
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity
 from Differential import Differential
 from LEStats import cellId2Coord, coord2CellId
@@ -52,6 +52,14 @@ def normalizeEntropy(e):
     """
     return min(Params.MAX_ENTROPY, abs(e))
 
+def normalizeDiversity(d):
+    """
+    Post-processing
+    :param d:
+    :return:
+    """
+    return min(Params.MAX_DIVERSITY, abs(d))
+
 def normalizeFrequency(f):
     """
     Post-processing
@@ -59,6 +67,18 @@ def normalizeFrequency(f):
     :return:
     """
     return min(Params.MAX_C, abs(f))
+
+def perturbedDiversity(p):
+    D_noisy = defaultdict()
+    sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
+    locs = transformDict(sampledUsers)
+
+    sensitivity = math.log(p.M, np.e)
+    for lid, counter in locs.iteritems():
+        if len(counter) >= 1:
+            D_noisy[lid] = normalizeDiversity(noisyCount(randomEntropy(len(counter)), sensitivity, p.eps, p.seed))
+    return D_noisy
+
 
 def perturbedLocationEntropy(p, ss, method="SS"):
     E_noisy = defaultdict()
@@ -74,7 +94,7 @@ def perturbedLocationEntropy(p, ss, method="SS"):
                 smoothSens = ssList[min(len(limitFreqs) - 1, len(ssList) - 1)]
                 E_noisy[lid] = normalizeEntropy(
                     entropy(limitFreqs) + smoothSens * 2.0 * p.M / p.eps * np.random.laplace(0, 1, 1)[0])
-    elif method == "BL":
+
         sensitivity = p.C * p.M
         E_noisy = defaultdict()
         for lid, counter in locs.iteritems():
@@ -116,6 +136,41 @@ def evalSS(p, E_actual, ss):
             for lid, e in E_actual.iteritems():
                 actual.append(e)
                 noisy.append(E_noisy.get(lid, Params.DEFAULT_ENTROPY))   # default entropy = 0
+            for k in range(len(metricList)):
+                res_cube[i, j, k] = metricList[k](actual, noisy)
+
+    res_summary = np.average(res_cube, axis=1)
+    # res_summary_str = np.insert(res_summary.astype(str), 0, methodList, axis=0)
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+
+"""
+Diversity (random entropy)
+"""
+def evalDiv(p, D_actual):
+    exp_name = sys._getframe().f_code.co_name
+    logging.info(exp_name)
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
+
+    sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
+    locs = transformDict(sampledUsers)
+
+    sensitivity = math.log(p.M, np.e)
+
+    for j in range(len(seed_list)):
+        for i in range(len(eps_list)):
+            p.seed = seed_list[j]
+            p.eps = eps_list[i]
+
+            D_noisy = defaultdict()
+            for lid, counter in locs.iteritems():
+                if len(counter) >= 1:
+                    D_noisy[lid] = normalizeDiversity(
+                        noisyCount(randomEntropy(len(counter)), sensitivity, p.eps, p.seed))
+
+            actual, noisy = [], []
+            for lid, e in D_actual.iteritems():
+                actual.append(e)
+                noisy.append(D_noisy.get(lid, Params.DEFAULT_DIVERSITY))   # default entropy = 0
             for k in range(len(metricList)):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
