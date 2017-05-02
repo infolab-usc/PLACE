@@ -28,6 +28,7 @@ class Params(object):
     TOP_K = 100
     MAX_ENTROPY = MAX_DIVERSITY = math.log(MAX_N, base)
 
+    EARTH_RADIUS = 6378137 # const, in meters
     def __init__(self, seed):
         self.dataset = ""
         self.resdir = ""
@@ -38,7 +39,7 @@ class Params(object):
         self.locDict = None
         self.cellDict = None
 
-        self.radius = 500.0  # default unit is meters
+        self.radius = 1000.0  # default unit is meters
         self.C = 2
         self.M = 5
         self.K = 50 # only publish locations with at least K users

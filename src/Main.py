@@ -106,9 +106,9 @@ def perturbedLocationEntropy(p, ss, method="SS"):
     return E_noisy
 
 """
-Smoooth sensitivity
+Publish location entropy using Smoooth sensitivity
 """
-def evalSS(p, E_actual, ss):
+def evalEnt(p, E_actual, ss):
     exp_name = sys._getframe().f_code.co_name
     logging.info(exp_name)
     res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
@@ -144,7 +144,7 @@ def evalSS(p, E_actual, ss):
     np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 """
-Diversity (random entropy)
+Publish diversity (random entropy)
 """
 def evalDiv(p, D_actual):
     exp_name = sys._getframe().f_code.co_name
@@ -178,8 +178,43 @@ def evalDiv(p, D_actual):
     # res_summary_str = np.insert(res_summary.astype(str), 0, methodList, axis=0)
     np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
+# def evalFreq(p, F_actual):
+#     exp_name = sys._getframe().f_code.co_name
+#     logging.info(exp_name)
+#
+#     res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
+#
+#     sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
+#     locs = transformDict(sampledUsers)
+#
+#     for j in range(len(seed_list)):
+#         for i in range(len(eps_list)):
+#             p.seed = seed_list[j]
+#             p.eps = eps_list[i]
+#
+#             sensitivity = p.C * p.M
+#
+#             F_noisy = defaultdict(list)
+#             for lid, counter in locs.iteritems():
+#                 if len(counter) >= 1:
+#                     limitFreqs = threshold(counter.values(), p.C)  # thresholding
+#                     noisyFreqs = [normalizeFrequency(noisyCount(freq, sensitivity, p.eps, p.seed)) for freq in limitFreqs]
+#                     F_noisy[lid] = noisyFreqs
+#
+#             actual, noisy = [], []
+#             for lid, e in F_actual.iteritems():
+#                 actual.append(e)
+#                 noisy.append(E_noisy.get(lid, Params.DEFAULT_ENTROPY))   # default entropy = 0
+#             for k in range(len(metricList)):
+#                 res_cube[i, j, k] = metricList[k](actual, noisy)
+#
+#     res_summary = np.average(res_cube, axis=1)
+#     np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+
+
 """
-Add noise to each frequency
+Publish location entropy by adding noise to each frequency.
+This method assumes the number of users checkins to a location can be known to the adversary
 """
 def evalBL(p, E_actual):
     exp_name = sys._getframe().f_code.co_name
@@ -262,15 +297,24 @@ def testDifferential():
     differ = Differential(1000)
     # RTH = (34.020412, -118.289936)
     TS = (40.758890, -73.985100)
-    for i in range(100):
-        (x, y) = differ.getTwoPlanarNoise(p.radius, p.eps)
-        pp = noisyPoint(TS, (x,y))
-        u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
-        v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / Params.GRID_SIZE
-        rad = euclideanToRadian((u, v))
-        cell_size = np.array([rad[0], rad[1]])
-        roundedPoint = round2Grid(pp, cell_size, p.x_min, p.y_min)
-        # print (str(pp[0]) + ',' + str(pp[1]))
-        print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
 
-# testDifferential()
+    for i in range(10000):
+        # (x, y) = differ.getPolarNoise(1000000, p.eps)
+        # pp = noisyPoint(TS, (x,y))
+
+        pp = differ.addPolarNoise(p.eps, TS, 1000000)
+
+
+        # u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
+        # v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / Params.GRID_SIZE
+        # rad = euclideanToRadian((u, v))
+        # cell_size = np.array([rad[0], rad[1]])
+        # roundedPoint = round2Grid(pp, cell_size, p.x_min, p.y_min)
+
+
+        roundedPoint = pp
+        # print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
+
+
+
+testDifferential()

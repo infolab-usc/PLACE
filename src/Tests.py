@@ -6,9 +6,9 @@ from LEStats import readCheckins, cellStats, entropyStats, otherStats
 from plots import distribution_pdf, line_graph, scatter
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy, actualDiversity
+from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy, actualDiversity, actualLocation
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
-from Main import evalSS, evalBL, evalGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
+from Main import evalEnt, evalBL, evalGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
 from Differential import Differential
 import sklearn.metrics as metrics
 import numpy as np
@@ -34,15 +34,18 @@ class TestFunctions(unittest.TestCase):
         else: # real
             self.p.locs, self.p.locDict = readCheckins(self.p)
 
-        self.p.users = transformDict(self.p.locs)
+        # self.p.users = transformDict(self.p.locs)
 
         # Discretize
-        # self.p.locs = cellStats(self.p)
-        # self.p.users = transformDict(self.p.locs)
+        self.p.locs = cellStats(self.p)
+        self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
-        self.E_actual = actualEntropy(self.p.locs)
-        self.D_actual = actualDiversity(self.p.locs)
+        # self.E_actual = actualEntropy(self.p.locs)
+        # self.D_actual = actualDiversity(self.p.locs)
+        # self.F_actual = self.p.locs
+
+        self.L_actual = actualLocation(self.p.locs)
 
     # @unittest.skip
     def testMain(self):
@@ -55,22 +58,22 @@ class TestFunctions(unittest.TestCase):
 
         # E_noisy = perturbedLocationEntropy(self.p, self.ss, "SS")
         # perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
-        # scatter_LE(perturbedLEVals, "Location Id", "Entropy")
-        #
-        evalSS(self.p, self.E_actual, self.ss)
-        # evalBL(self.p, self.E_actual)
-        # evalGeoI(self.p, E_actual)
+        # scatter(perturbedLEVals, "Location Id", "Entropy")
 
         # div = sorted(list(self.D_actual.iteritems()), key=lambda x:x[1], reverse=True)
         # locIds = [t[0] for t in div]
         # divVals = [t[1] for t in div]
         # scatter(divVals, "Location Id", "Diversity")
-        #
+
         # D_noisy = perturbedDiversity(self.p)
         # perturbedDVals = [D_noisy.get(id, Params.DEFAULT_DIVERSITY) for id in locIds]
         # scatter(perturbedDVals, "Location Id", "Diversity")
 
-        evalDiv(self.p, self.E_actual)
+        evalEnt(self.p, self.E_actual, self.ss)
+        evalDiv(self.p, self.D_actual)
+        evalBL(self.p, self.E_actual)
+
+        # evalGeoI(self.p, self.E_actual)
 
     @unittest.skip
     def testLEParser(self):
@@ -161,7 +164,7 @@ class TestFunctions(unittest.TestCase):
         radius = 500.0  # default unit is meters
         eps = np.log(2)
         for i in range(100):
-            (x, y) = differ.getTwoPlanarNoise(radius, eps)
+            (x, y) = differ.getPolarNoise(radius, eps)
             print (str(RTH[0] + x * Params.ONE_KM * 0.001) + ',' + str(RTH[1] + y * Params.ONE_KM*1.2833*0.001))
 
     @unittest.skip

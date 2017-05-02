@@ -1,20 +1,35 @@
 import numpy as np
 import math
 from scipy.stats import gamma, uniform
-
+from Params import Params
 
 class Differential(object):
-    Delta = 10000  # delta inverse
-    Beta = 2.0
-    Two_appr = True  # use 2-approximation for smooth sensitivity
 
     def __init__(self, seed):
         np.random.seed(seed)
 
-    def getUniform(self, lo, hi, size=1):
-        return np.random.uniform(lo, hi, size)
+    def addPolarNoise(self, eps, pos, radius):
+        # random number in [0, 2 * PI)
+        theta = np.random.rand() * 2 * math.pi
 
-    def getTwoPlanarNoise(self, radius=500.0, base_eps=2.0, LIMIT_NINETY_FIVE = False, NINETY_FIVE_DISTANCE=0.95):
+        # random variable in [0, 1)
+        z = np.random.rand()
+        r = self.inverseCumulativeGamma(eps, z) * radius
+        return self.addVectorToPos(pos, r, theta)
+
+    def addPolarNoiseCartesian(self, eps, pos):
+        pos = self.getCartesian(pos)
+
+        # random number in [0, 2 * PI)
+        theta = np.random.rand() * 2 * math.pi
+
+        # random variable in [0, 1)
+        z = np.random.rand()
+        r = self.inverseCumulativeGamma(eps, z)
+
+        return self.getLatLon((pos[0] + r * math.cos(theta), pos[1] + r * math.sin(theta)))
+
+    def getPolarNoise(self, radius=500.0, base_eps=2.0, LIMIT_NINETY_FIVE = False, NINETY_FIVE_DISTANCE=0.95):
         r_gen = gamma(2., scale=radius/base_eps)
         theta_gen = uniform(scale=2*math.pi)
         r, theta = r_gen.rvs(), theta_gen.rvs()
@@ -23,145 +38,57 @@ class Differential(object):
             r = r_gen.rvs()
         return (np.cos(theta) * r, np.sin(theta) * r)
 
+    def rad_of_deg(self, ang):
+        return ang * math.pi / 180
+
+    def deg_of_rad(self, ang):
+        return ang * 180 / math.pi
+
+    # http://www.movable-type.co.uk/scripts/latlong.html
+    def addVectorToPos(self, pos, distance, angle):
+        ang_distance = distance / Params.EARTH_RADIUS
+
+        lat1 = self.rad_of_deg(pos[0])
+        lon1 = self.rad_of_deg(pos[1])
+
+        lat2 = math.asin(math.sin(lat1) * math.cos(ang_distance) + math.cos(lat1) * math.sin(ang_distance) * math.cos(angle))
+        lon2 = lon1 + math.atan2(math.sin(angle) * math.sin(ang_distance) * math.cos(lat1),
+                                 math.cos(ang_distance) - math.sin(lat1) * math.sin(lat2))
+
+        lon2 = (lon2 + 3*math.pi) % (2*math.pi) - math.pi # normalize to -180 to +180
+        return [self.deg_of_rad(lat2), self.deg_of_rad(lon2)]
+
+    # LamberW function on branch -1 (http://en.wikipedia.org/wiki/Lambert_W_function)
+    def LambertW(self, x):
+        min_diff = 1e-10
+        if x == -1/math.e:
+            return -1
+        elif 0 > x > -1/math.e:
+            q = np.log(-x)
+            p = 1
+            while abs(p-q) > min_diff:
+                p = (q*q + x/math.exp(q))/(q+1)
+                q = (p*p + x/math.exp(p))/(p+1)
+            # This line decides the precision of the float number that would be returned
+            return round(q, 6)
+        else:
+            return 0
+
+    def inverseCumulativeGamma(self, eps, z):
+        x = (z-1)/math.e
+        return -(self.LambertW(x) + 1)/eps
+
+    def getLatLon(self, cart):
+        rLon = cart[0] / Params.EARTH_RADIUS
+        rLat = 2 * (math.atan(math.exp(cart[1]/Params.EARTH_RADIUS)))  - math.pi/2
+        return (self.deg_of_rad(rLat), self.deg_of_rad(rLon))
+
+    def getCartesian(self, ll):
+        # latitude and longitude are converted in radiants
+        return (Params.EARTH_RADIUS * self.rad_of_deg(ll[1]), Params.EARTH_RADIUS * math.log(math.tan(math.pi/4 + self.rad_of_deg(ll[0])/2)))
+
+
+
     def getNoise(self, sens, eps):
         """Get simple Laplacian noise"""
         return np.random.laplace(0, sens / eps, 1)[0]
-
-    def getSplit_smooth(self, data_raw, left, right, eps, srt=1):
-        """Get noisy median, using smooth sensitivity (quadratic search or 2-approximation)"""
-        if srt == 1:  # no sampling
-            data = data_raw
-        else:  # get sample first
-            eps *= 1 / (np.log(1 + srt * (np.exp(1) - 1)))
-            n_raw = len(data_raw)
-            idx = np.random.permutation(n_raw)[0:int(n_raw * srt)]
-            data = np.sort(data_raw[idx])
-
-        n = len(data)
-        if n % 2 == 0:
-            m1 = n / 2 - 1
-            m2 = n / 2
-        m = int(np.floor((n - 1) / 2))
-        beta = 0.5 * eps * (np.log(Differential.Delta))
-        out_list = np.zeros(n + 1)
-        for k in range(n + 1):
-            damp = np.exp(-k * beta)
-            # in_list = np.zeros(k+2)
-            if Differential.Two_appr is True:  # use 2-approximation
-                idx_big = m + k + 1
-                big = right if idx_big >= n else data[idx_big]
-                idx_small = m - k - 1
-                small = left if idx_small < 0 else data[idx_small]
-                in_max = big - small
-                # else: # use quadratic search
-                # for t in range(k+2):
-                # in_list[t] = eval(m+t)-eval(m+t-k-1)
-                # in_max = max(in_list)
-            out_list[k] = damp * in_max
-
-        sen = max(out_list)
-        if n % 2 == 1:
-            split = data[m] + sen * 2 * np.random.laplace() / eps
-        else:
-            split = (data[m1] + data[m2]) / 2 + sen * 2 * np.random.laplace() / eps
-
-        return split
-
-    def getSplit_exp(self, data_raw, left, right, eps, srt=1):
-        """Get noisy median using exponential mechanism"""
-        # 'data_raw' is the sorted input of n real numbers
-        # 'left' and 'right' are the default boundaries
-        if srt == 1 or len(data_raw) * srt <= 10:
-            data = data_raw
-        else:  # get sample first
-            eps *= 1 / (np.log(1 + srt * (np.exp(1) - 1)))
-            n_raw = len(data_raw)
-            idx = np.random.permutation(n_raw)[0:int(n_raw * srt)]
-            data = np.sort(data_raw[idx])
-
-        n = len(data)
-        if n % 2 == 1:
-            rm = (n + 1) / 2  # rm is the rank of the median
-        else:
-            rm = n / 2
-        t = np.concatenate(([left], data, [right]))  # input sequence with boundaries
-        base = np.exp(-eps / Differential.Beta)  # a constant
-
-        prob_sum = np.zeros(n + 2)  # 'prob_sum' is a list of cumulative probability mass
-        prob_sum[0] = 0.0
-
-        for i in range(1, n + 2):  # populate 'prob_sum' for each of the n+1 buckets
-            if i - 1 >= rm:
-                prob_sum[i] = prob_sum[i - 1] + (t[i] - t[i - 1]) * (base ** (i - 1 - rm))
-            else:
-                prob_sum[i] = prob_sum[i - 1] + (t[i] - t[i - 1]) * (base ** (rm - i + 1))
-
-        rand = np.random.uniform(0.0, 1.0, 1)  # a random number in [0,1)
-        idx = np.searchsorted(prob_sum, rand * prob_sum[n + 1])  # the index of the bucket which 'rand' falls into
-        split = np.random.uniform(t[idx - 1], t[idx], 1)  # pick a random number in the bucket as the split value
-
-        return split[0]
-
-    def getSplit_slice(self, data_raw, left, right, eps, partitions, slice, srt=1):
-        """Get noisy slide using exponential mechanism"""
-        # 'data_raw' is the sorted input of n real numbers
-        # 'left' and 'right' are the default boundaries
-        if srt == 1 or len(data_raw) * srt <= 10:
-            data = data_raw
-        else:  # get sample first
-            eps *= 1 / (np.log(1 + srt * (np.exp(1) - 1)))
-            n_raw = len(data_raw)
-            idx = np.random.permutation(n_raw)[0:int(n_raw * srt)]
-            data = np.sort(data_raw[idx])
-
-        n = len(data)
-        rm = slice * n / partitions
-        t = np.concatenate(([left], data, [right]))  # input sequence with boundaries
-        base = np.exp(-eps / Differential.Beta)  # a constant
-
-        prob_sum = np.zeros(n + 2)  # 'prob_sum' is a list of cumulative probability mass
-        prob_sum[0] = 0.0
-
-        for i in range(1, n + 2):  # populate 'prob_sum' for each of the n+1 buckets
-            if i - 1 >= rm:
-                prob_sum[i] = prob_sum[i - 1] + (t[i] - t[i - 1]) * (base ** (i - 1 - rm))
-            else:
-                prob_sum[i] = prob_sum[i - 1] + (t[i] - t[i - 1]) * (base ** (rm - i + 1))
-
-        rand = np.random.uniform(0.0, 1.0, 1)  # a random number in [0,1)
-        idx = np.searchsorted(prob_sum, rand * prob_sum[n + 1])  # the index of the bucket which 'rand' falls into
-        split = np.random.uniform(t[idx - 1], t[idx], 1)  # pick a random number in the bucket as the split value
-
-        return split[0]
-
-    def getSplit_noisyMean(self, data_raw, left, right, eps):
-        """Get noisy median using noisy mean"""
-        noisy_count = len(data_raw) + self.getNoise(1, eps / 2)
-        noisy_sum = sum(data_raw) + self.getNoise(right - left, eps / 2)
-
-        return noisy_sum / noisy_count
-
-    def getSplit_grid(self, data_raw, left, right, eps, unit):
-        """Get noisy median using grid noisy counts, argument 'unit' is the
-        number of cells, controlling the granularity"""
-        n = len(data_raw)
-        # left = np.floor(left)
-        # right = np.ceil(right)
-        no_cell = int(np.ceil((right - left) / unit))
-        li = np.zeros(no_cell, dtype='float32')
-        for i in range(n):
-            cell = int(np.trunc(data_raw[i] - left) / unit)
-            li[cell] += 1
-        for i in range(no_cell):
-            li[i] += self.getNoise(1, eps)
-        total = sum(li)
-        i = 0
-        cur = li[0]
-        while cur < total / 2:
-            i += 1
-            cur += li[i]
-            if i == no_cell - 1 and cur < total / 2:
-                i = np.random.randint(0, no_cell)
-                break
-
-        return np.random.uniform(left + i * unit, left + (i + 1) * unit, 1)

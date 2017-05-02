@@ -26,6 +26,8 @@ def actualDiversity(locs):
     """
     return dict([(lid, randomEntropy(len(counter))) for lid, counter in locs.iteritems()])
 
+def actualLocation(locs):
+
 def topKValues(k, values):
     """
     Return top k largest values and their indices from a list
@@ -73,7 +75,7 @@ def perturbedPoint(point, p):
     :return:
     """
     differ = Differential(p.seed)
-    (x, y) = differ.getTwoPlanarNoise(p.radius, p.eps * p.M)
+    (x, y) = differ.getPolarNoise(p.radius, p.eps * p.M)
     pp = noisyPoint(point, (x,y))
     u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
     v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / Params.GRID_SIZE
@@ -201,7 +203,7 @@ def distance(lat1, lon1, lat2, lon2):
     """
     Distance between two geographical location (km)
     """
-    R = 6371  # km
+    R = Params.EARTH_RADIUS/1000  # km
     dLat = math.radians(abs(lat2 - lat1))
     dLon = math.radians(abs(lon2 - lon1))
     lat1 = math.radians(lat1)
