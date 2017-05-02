@@ -2,13 +2,13 @@ import unittest
 import logging
 
 from filter_data import filter_gowalla, filter_yelp
-from LEStats import readCheckins, cellStats, entropyStats, otherStats
+from LEStats import readCheckins, cellStats, entropyStats, otherStats, actualEntropy, actualDiversity, actualLocationCount
 from plots import distribution_pdf, line_graph, scatter
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
-from Utils import CEps2Str, samplingUsers, transformDict, topKValues, actualEntropy, actualDiversity, actualLocation
+from Utils import CEps2Str, samplingUsers, transformDict, topKValues
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
-from Main import evalEnt, evalBL, evalGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
+from Main import evalEnt, evalBL, evalCountGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
 from Differential import Differential
 import sklearn.metrics as metrics
 import numpy as np
@@ -38,14 +38,13 @@ class TestFunctions(unittest.TestCase):
 
         # Discretize
         self.p.locs = cellStats(self.p)
-        self.p.users = transformDict(self.p.locs)
+        # self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
         # self.E_actual = actualEntropy(self.p.locs)
         # self.D_actual = actualDiversity(self.p.locs)
-        # self.F_actual = self.p.locs
 
-        self.L_actual = actualLocation(self.p.locs)
+        self.C_actual = actualLocationCount(self.p, self.p.locDict)
 
     # @unittest.skip
     def testMain(self):
@@ -73,7 +72,9 @@ class TestFunctions(unittest.TestCase):
         evalDiv(self.p, self.D_actual)
         evalBL(self.p, self.E_actual)
 
-        # evalGeoI(self.p, self.E_actual)
+        evalCountGeoI(self.p, self.C_actual)
+
+        # evalCountGeoI(self.p, self.E_actual)
 
     @unittest.skip
     def testLEParser(self):

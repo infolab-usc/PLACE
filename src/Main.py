@@ -253,37 +253,29 @@ def evalBL(p, E_actual):
 """
 Add 2d Laplace noise to each location
 """
-def evalGeoI(p, E_actual):
+def evalCountGeoI(p, C_actual):
     exp_name = sys._getframe().f_code.co_name
     logging.info(exp_name)
 
     res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
 
-    sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
-    locs = transformDict(sampledUsers)
-    noisyLocs = defaultdict(Counter)
+    differ = Differential(p.seed)
 
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
             p.seed = seed_list[j]
             p.eps = eps_list[i]
 
-            E_noisy = defaultdict()
-            for lid, counter in locs.iteritems():
-                if len(counter) >= 1:
-                    cellCoord = cellId2Coord(lid, p)
-
-                    # randomly move this point a number of times
-                    for uid, freq in counter.iteritems():
-                        pp = perturbedPoint(cellCoord, p)
-                        cellId = coord2CellId(pp, p)
-                        noisyLocs[cellId].update([uid])
+            C_noisy = defaultdict()
+            for lid, loc in p.locDict.iteritems():
+                noisyLoc = differ.addPolarNoise(p.eps, loc, p.radius) # perturbed noisy location
+                cellId = coord2CellId(noisyLoc, p)  # obtain cell id from noisy location
+                C_noisy[cellId] += 1
 
             actual, noisy = [], []
-            cellIds = E_actual.keys() + noisyLocs.keys()
-            for cellId in cellIds:
-                actual.append(E_actual.get(cellId, Params.DEFAULT_ENTROPY))
-                noisy.append(E_noisy.get(lid, Params.DEFAULT_ENTROPY))   # default entropy = 0
+            for cellId, c in C_actual.iteritems():
+                actual.append(c)
+                noisy.append(C_noisy.get(cellId, Params.DEFAULT_ENTROPY))   # default entropy = 0
             for k in range(len(metricList)):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 

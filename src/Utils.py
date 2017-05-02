@@ -10,24 +10,6 @@ import scipy.stats as stats
 from Differential import Differential
 import heapq
 
-def actualEntropy(locs):
-    """
-    Compute actual shannon entropy from a set of locations
-    :param locs:
-    :return:
-    """
-    return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
-
-def actualDiversity(locs):
-    """
-    Compute actual diversity entropy from a set of locations
-    :param locs:
-    :return:
-    """
-    return dict([(lid, randomEntropy(len(counter))) for lid, counter in locs.iteritems()])
-
-def actualLocation(locs):
-
 def topKValues(k, values):
     """
     Return top k largest values and their indices from a list
@@ -166,25 +148,6 @@ def transformDict(origDict):
             newDict[newId].update(Counter({origId : freq}))
     return newDict
 
-def randomEntropy(n):
-    """
-    Capture the degree of predictability of the users' whereabouts if each location
-    is visited with equal probability
-    :param N: number of distinct locations visited by the user
-    :return:
-    """
-    return math.log(n, Params.base)
-
-def temporalUncorrelatedEntropy(pk):
-    """
-    characterize the heterogeneity of visitation patterns
-    :param pk:
-    :return:
-    """
-    return stats.entropy(pk, base=Params.base)
-
-def entropy(pk):
-    return temporalUncorrelatedEntropy(pk)
 
 # print entropy([1, 1000000, 1, 1, 1, 1, 1, 1, 1, 1, 1,1,1,1,1,1,1,1,1,1,1,1])
 

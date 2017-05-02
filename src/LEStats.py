@@ -117,7 +117,7 @@ def cellStats(p, sens=1):
     cells = defaultdict(Counter)
 
     for lid in p.locs.keys():
-        if not p.locDict.get(lid): print "not exist", lid
+        if lid not in p.locDict: print "not exist", lid
         # lat, lon = p.locDict.get(lid)
         # lat_idx = int((lat - p.x_min)/(p.x_max - p.x_min) * p.m)
         # lon_idx = int((lon - p.y_min)/(p.y_max - p.y_min) * p.m)
@@ -127,3 +127,54 @@ def cellStats(p, sens=1):
 
     return cells
 
+
+def randomEntropy(n):
+    """
+    Capture the degree of predictability of the users' whereabouts if each location
+    is visited with equal probability
+    :param N: number of distinct locations visited by the user
+    :return:
+    """
+    return math.log(n, Params.base)
+
+def temporalUncorrelatedEntropy(pk):
+    """
+    characterize the heterogeneity of visitation patterns
+    :param pk:
+    :return:
+    """
+    return stats.entropy(pk, base=Params.base)
+
+def entropy(pk):
+    return temporalUncorrelatedEntropy(pk)
+
+def actualEntropy(locs):
+    """
+    Compute actual shannon entropy from a set of locations
+    :param locs:
+    :return:
+    """
+    return dict([(lid, entropy(counter.values())) for lid, counter in locs.iteritems()])
+
+def actualDiversity(locs):
+    """
+    Compute actual diversity entropy from a set of locations
+    :param locs:
+    :return:
+    """
+    return dict([(lid, randomEntropy(len(counter))) for lid, counter in locs.iteritems()])
+
+def actualLocationCount(p, locDict):
+    """
+    partition space into an equal-size grid, then count the number of locations within each grid
+    :param p:
+    :return: a count for each cell id
+    """
+    count = defaultdict()
+
+    for lid in locDict.keys():
+        if lid not in locDict: print "not exist", lid
+        cellId = coord2CellId(locDict.get(lid), p)
+        count[cellId] += 1
+
+    return count
