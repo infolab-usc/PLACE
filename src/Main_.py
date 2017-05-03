@@ -322,8 +322,8 @@ def evalActualSensitivity(p):
 def data_readin(p):
     """Read in spatial data and initialize global variables."""
     p.select_dataset()
-    # data = np.genfromtxt(p.dataset, unpack=True)
-    p.locs, p.C, p.f_total, p.users, p.locDict = readCheckins(p.dataset)
+    # data = np.genfromtxt(Params.DATASET, unpack=True)
+    p.locs, p.C, p.f_total, p.users, p.locDict = readCheckins(Params.DATASET)
 
     data = np.ndarray(shape=(2,len(p.users)))
     userids = p.users.keys()

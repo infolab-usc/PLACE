@@ -1,6 +1,6 @@
 
 import scipy.stats as stats
-from Utils import randomEntropy, temporalUncorrelatedEntropy
+from LEStats import randomEntropy, temporalUncorrelatedEntropy
 import matplotlib.pyplot as plt
 
 import numpy as np

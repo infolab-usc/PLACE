@@ -59,8 +59,8 @@ def perturbedPoint(point, p):
     differ = Differential(p.seed)
     (x, y) = differ.getPolarNoise(p.radius, p.eps * p.M)
     pp = noisyPoint(point, (x,y))
-    u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
-    v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / Params.GRID_SIZE
+    u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / p.m
+    v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / p.m
     rad = euclideanToRadian((u, v))
     cell_size = np.array([rad[0], rad[1]])
     roundedPoint = round2Grid(pp, cell_size, p.x_min, p.y_min)

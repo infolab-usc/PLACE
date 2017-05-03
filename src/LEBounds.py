@@ -6,6 +6,9 @@ from Params import Params
 from Utils import getSmoothSensitivityFile
 from Utils import CEps2Str
 
+def diversitySensitivity(M):
+    return M * math.log(2, Params.base) # add or remove one users change diversity by maximum ln(2)
+
 def frequencySensitivity(C, M):
     """
     Add/remove one user affects M locations, each location affects up to C checkins

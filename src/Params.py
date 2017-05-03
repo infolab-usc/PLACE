@@ -5,7 +5,7 @@ import math
 
 # # Basic parameters
 class Params(object):
-    DATASET = "dense"
+    DATASET = "gowallaau"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -24,7 +24,6 @@ class Params(object):
     DELTA = 1e-8
     PRECISION = 1e-15
     DEFAULT_ENTROPY = DEFAULT_DIVERSITY = DEFAULT_FREQUENCY = 0.0
-    GRID_SIZE = 1000
     TOP_K = 100
     MAX_ENTROPY = MAX_DIVERSITY = math.log(MAX_N, base)
 
@@ -39,7 +38,7 @@ class Params(object):
         self.locDict = None
         self.cellDict = None
 
-        self.radius = 1000.0  # default unit is meters
+        self.radius = 500.0  # default unit is meters
         self.C = 2
         self.M = 5
         self.K = 50 # only publish locations with at least K users
@@ -98,7 +97,6 @@ class Params(object):
             self.x_max = 41.998434033
             self.y_max = -114.004346433
 
-
         if Params.DATASET == "gowallasf":
             self.dataset = "../dataset/gowalla_sf.dat"
             self.resdir = "../output/"
@@ -106,7 +104,6 @@ class Params(object):
             self.y_min = -122.51350164
             self.x_max = 37.83266118
             self.y_max = -122.3627126
-
 
         if Params.DATASET == "syn10k":
             self.dataset = "../dataset/syn_10K.txt"

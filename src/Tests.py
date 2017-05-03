@@ -8,7 +8,7 @@ from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitiv
 from Params import Params
 from Utils import CEps2Str, samplingUsers, transformDict, topKValues
 from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
-from Main import evalEnt, evalBL, evalCountGeoI, perturbedLocationEntropy, perturbedDiversity, evalDiv
+from Main import evalEnt, evalBL, evalCountGeoI, perturbeEntropy, perturbeDiversity, evalDiv, evalCountDiff, perturbeCount, evalDivGeoI
 from Differential import Differential
 import sklearn.metrics as metrics
 import numpy as np
@@ -29,7 +29,7 @@ class TestFunctions(unittest.TestCase):
         eps_list = [0.1, 0.4, 0.7, 1.0]
         self.ss = getSmoothSensitivity(c_list, eps_list)
 
-        if self.p.DATASET in ["sparse", "medium", "dense"]: # synthetic
+        if Params.DATASET in ["sparse", "medium", "dense"]: # synthetic
             self.p.locs = readData(self.p.dataset)
         else: # real
             self.p.locs, self.p.locDict = readCheckins(self.p)
@@ -38,13 +38,13 @@ class TestFunctions(unittest.TestCase):
 
         # Discretize
         self.p.locs = cellStats(self.p)
-        # self.p.users = transformDict(self.p.locs)
+        self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
         # self.E_actual = actualEntropy(self.p.locs)
-        # self.D_actual = actualDiversity(self.p.locs)
+        self.D_actual = actualDiversity(self.p.locs)
 
-        self.C_actual = actualLocationCount(self.p, self.p.locDict)
+        # self.C_actual = actualLocationCount(self.p, self.p.locDict)
 
     # @unittest.skip
     def testMain(self):
@@ -53,7 +53,7 @@ class TestFunctions(unittest.TestCase):
         # le = sorted(list(self.E_actual.iteritems()), key=lambda x:x[1], reverse=True)    # decrease entropy
         # locIds = [t[0] for t in le]
         # LEVals = [t[1] for t in le]
-        # scatter_LE(LEVals, "Location Id", "Entropy")
+        # scatter(LEVals, "Location Id", "Entropy")
 
         # E_noisy = perturbedLocationEntropy(self.p, self.ss, "SS")
         # perturbedLEVals = [E_noisy.get(id, Params.DEFAULT_ENTROPY) for id in locIds]
@@ -68,13 +68,23 @@ class TestFunctions(unittest.TestCase):
         # perturbedDVals = [D_noisy.get(id, Params.DEFAULT_DIVERSITY) for id in locIds]
         # scatter(perturbedDVals, "Location Id", "Diversity")
 
-        evalEnt(self.p, self.E_actual, self.ss)
+        # cells = sorted(list(self.C_actual.iteritems()), key=lambda x:x[1], reverse=True)
+        # cellIds = [t[0] for t in cells]
+        # counts = [t[1] for t in cells]
+        # scatter(counts, "Cell Id", "Locations")
+        #
+        # C_noisy = perturbeCount(self.p)
+        # perturbedCounts = [C_noisy.get(id, Params.DEFAULT_FREQUENCY) for id in cellIds]
+        # scatter(perturbedCounts, "Cell Id", "Locations")
+
+        # evalEnt(self.p, self.E_actual, self.ss)
         evalDiv(self.p, self.D_actual)
-        evalBL(self.p, self.E_actual)
+        # evalBL(self.p, self.E_actual)
 
-        evalCountGeoI(self.p, self.C_actual)
+        # evalCountDiff(self.p, self.C_actual)
+        # evalCountGeoI(self.p, self.C_actual)
 
-        # evalCountGeoI(self.p, self.E_actual)
+        evalDivGeoI(self.p, self.D_actual)
 
     @unittest.skip
     def testLEParser(self):

@@ -9,10 +9,10 @@ import copy
 
 import scipy.stats as stats
 from Metrics import KLDiv, RMSE, CatScore, TopK
-from Utils import samplingUsers, transformDict, threshold, entropy, randomEntropy, CEps2Str, noisyEntropy, noisyCount, noisyPoint, round2Grid, distance, euclideanToRadian, perturbedPoint
-from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity
+from Utils import samplingUsers, transformDict, threshold, CEps2Str, noisyEntropy, noisyCount, noisyPoint, round2Grid, distance, euclideanToRadian, perturbedPoint
+from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, diversitySensitivity
 from Differential import Differential
-from LEStats import cellId2Coord, coord2CellId
+from LEStats import cellId2Coord, coord2CellId, entropy, randomEntropy
 from multiprocessing import Pool
 from Kd_standard import Kd_standard
 from Quad_standard import Quad_standard
@@ -27,7 +27,7 @@ sys.path.append('/Users/ubriela/Dropbox/_USC/_Research/_Crowdsourcing/_Privacy/P
 
 # eps_list = [0.1, 0.5, 1.0, 5.0, 10.0]
 
-eps_list = [0.1, 0.4, 0.7, 1.0]
+eps_list = [0.05, 0.1, 0.4, 0.7, 1.0]
 
 
 seed_list = [9110, 4064, 6903]
@@ -68,7 +68,7 @@ def normalizeFrequency(f):
     """
     return min(Params.MAX_C, abs(f))
 
-def perturbedDiversity(p):
+def perturbeDiversity(p):
     D_noisy = defaultdict()
     sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
     locs = transformDict(sampledUsers)
@@ -80,7 +80,7 @@ def perturbedDiversity(p):
     return D_noisy
 
 
-def perturbedLocationEntropy(p, ss, method="SS"):
+def perturbeEntropy(p, ss, method="SS"):
     E_noisy = defaultdict()
     sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
     locs = transformDict(sampledUsers)
@@ -104,6 +104,15 @@ def perturbedLocationEntropy(p, ss, method="SS"):
                 E_noisy[lid] = entropy([f for f in noisyFreqs])  # freq >= 0
 
     return E_noisy
+
+def perturbeCount(p):
+    C_noisy = defaultdict()
+    differ = Differential(p.seed)
+    for lid, loc in p.locDict.iteritems():
+        noisyLoc = differ.addPolarNoise(p.eps, loc, p.radius)  # perturbed noisy location
+        cellId = coord2CellId(noisyLoc, p)  # obtain cell id from noisy location
+        C_noisy[cellId] = C_noisy.get(cellId, 0) + 1
+    return C_noisy
 
 """
 Publish location entropy using Smoooth sensitivity
@@ -140,11 +149,10 @@ def evalEnt(p, E_actual, ss):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    # res_summary_str = np.insert(res_summary.astype(str), 0, methodList, axis=0)
-    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + '_M' + str(p.M) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 """
-Publish diversity (random entropy)
+Publish diversity (random entropy) by adding Laplace noise
 """
 def evalDiv(p, D_actual):
     exp_name = sys._getframe().f_code.co_name
@@ -154,7 +162,7 @@ def evalDiv(p, D_actual):
     sampledUsers = samplingUsers(p.users, p.M)   # truncate M: keep the first M locations' visits
     locs = transformDict(sampledUsers)
 
-    sensitivity = math.log(p.M, np.e)
+    sensitivity = p.M # diversitySensitivity(p.M)
 
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
@@ -164,19 +172,62 @@ def evalDiv(p, D_actual):
             D_noisy = defaultdict()
             for lid, counter in locs.iteritems():
                 if len(counter) >= 1:
-                    D_noisy[lid] = normalizeDiversity(
-                        noisyCount(randomEntropy(len(counter)), sensitivity, p.eps, p.seed))
+                    D_noisy[lid] = randomEntropy(normalizeFrequency(
+                        noisyCount(len(counter), sensitivity, p.eps, p.seed))) # add noise to actual count first, then add compute diversity from noisy count
 
             actual, noisy = [], []
-            for lid, e in D_actual.iteritems():
-                actual.append(e)
+            for lid, d in D_actual.iteritems():
+                actual.append(d)
                 noisy.append(D_noisy.get(lid, Params.DEFAULT_DIVERSITY))   # default entropy = 0
             for k in range(len(metricList)):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    # res_summary_str = np.insert(res_summary.astype(str), 0, methodList, axis=0)
-    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + '_M' + str(p.M) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+
+"""
+Publish diversity (random entropy) using GeoI
+"""
+def evalDivGeoI(p, D_actual):
+    exp_name = sys._getframe().f_code.co_name
+    logging.info(exp_name)
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
+
+    sensitivity = p.M # diversitySensitivity(p.M)
+
+    differ = Differential(p.seed)
+
+    u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / p.m
+    v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / p.m
+    rad = euclideanToRadian((u, v))
+    cell_size = np.array([rad[0], rad[1]])
+
+    for j in range(len(seed_list)):
+        for i in range(len(eps_list)):
+            p.seed = seed_list[j]
+            p.eps = eps_list[i]
+
+            D_noisy = defaultdict(Counter)
+            for lid, loc in p.locDict.iteritems():
+                eps = p.eps/sensitivity
+                noisyLoc = differ.addPolarNoise(eps, loc, p.radius) # perturbed noisy location
+
+                # rounded to grid
+                roundedPoint = round2Grid(noisyLoc, cell_size, p.x_min, p.y_min)
+
+                cellId = coord2CellId(roundedPoint, p)  # obtain cell id from noisy location
+                D_noisy[cellId].update(p.locs[lid]) # update count(userid/freq)
+
+            actual, noisy = [], []
+            for cellId, d in D_actual.iteritems():
+                actual.append(d)
+                noisy.append(normalizeDiversity(randomEntropy(len(D_noisy.get(cellId, Params.DEFAULT_DIVERSITY)))))   # default entropy = 0
+            for k in range(len(metricList)):
+                res_cube[i, j, k] = metricList[k](actual, noisy)
+
+    res_summary = np.average(res_cube, axis=1)
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + '_M' + str(p.M) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+
 
 # def evalFreq(p, F_actual):
 #     exp_name = sys._getframe().f_code.co_name
@@ -247,7 +298,7 @@ def evalBL(p, E_actual):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + '_M' + str(p.M) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 
 """
@@ -261,6 +312,11 @@ def evalCountGeoI(p, C_actual):
 
     differ = Differential(p.seed)
 
+    u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / p.m
+    v = distance(p.x_min, p.y_min, p.x_min, p.y_max) * 1000.0 / p.m
+    rad = euclideanToRadian((u, v))
+    cell_size = np.array([rad[0], rad[1]])
+
     for j in range(len(seed_list)):
         for i in range(len(eps_list)):
             p.seed = seed_list[j]
@@ -269,18 +325,52 @@ def evalCountGeoI(p, C_actual):
             C_noisy = defaultdict()
             for lid, loc in p.locDict.iteritems():
                 noisyLoc = differ.addPolarNoise(p.eps, loc, p.radius) # perturbed noisy location
-                cellId = coord2CellId(noisyLoc, p)  # obtain cell id from noisy location
-                C_noisy[cellId] += 1
+
+                # rounded to grid
+                roundedPoint = round2Grid(noisyLoc, cell_size, p.x_min, p.y_min)
+
+                cellId = coord2CellId(roundedPoint, p)  # obtain cell id from noisy location
+                C_noisy[cellId] = C_noisy.get(cellId, 0) + 1
 
             actual, noisy = [], []
             for cellId, c in C_actual.iteritems():
-                actual.append(c)
-                noisy.append(C_noisy.get(cellId, Params.DEFAULT_ENTROPY))   # default entropy = 0
+                if c > 0:
+                    actual.append(c)
+                    noisy.append(C_noisy.get(cellId, Params.DEFAULT_ENTROPY))   # default entropy = 0
             for k in range(len(metricList)):
                 res_cube[i, j, k] = metricList[k](actual, noisy)
 
     res_summary = np.average(res_cube, axis=1)
-    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_eps" + str(p.eps) + '_C' + str(p.C), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_m" + str(p.m) + '_r' + str(p.radius), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
+
+"""
+Add 1d Laplace noise to number of locations in each cell
+"""
+def evalCountDiff(p, C_actual):
+    exp_name = sys._getframe().f_code.co_name
+    logging.info(exp_name)
+
+    res_cube = np.zeros((len(eps_list), len(seed_list), len(metricList)))
+
+    sensitivity = 1 # counting query
+
+    for j in range(len(seed_list)):
+        for i in range(len(eps_list)):
+            p.seed = seed_list[j]
+            p.eps = eps_list[i]
+
+            C_noisy = dict([(cellId, normalizeFrequency(noisyCount(c, sensitivity, p.eps, p.seed))) for cellId, c in C_actual.iteritems()])
+
+            actual, noisy = [], []
+            for cellId, c in C_actual.iteritems():
+                if c > 0:
+                    actual.append(c)
+                    noisy.append(C_noisy.get(cellId, Params.DEFAULT_ENTROPY))   # default entropy = 0
+            for k in range(len(metricList)):
+                res_cube[i, j, k] = metricList[k](actual, noisy)
+
+    res_summary = np.average(res_cube, axis=1)
+    np.savetxt(p.resdir + Params.DATASET + "_" + exp_name + "_m" + str(p.m), res_summary, header="\t".join([f.__name__ for f in metricList]), fmt='%.4f\t')
 
 
 def testDifferential():
@@ -290,11 +380,11 @@ def testDifferential():
     # RTH = (34.020412, -118.289936)
     TS = (40.758890, -73.985100)
 
-    for i in range(10000):
+    for i in range(100):
         # (x, y) = differ.getPolarNoise(1000000, p.eps)
         # pp = noisyPoint(TS, (x,y))
 
-        pp = differ.addPolarNoise(p.eps, TS, 1000000)
+        pp = differ.addPolarNoise(1.0, TS, 500)
 
 
         # u = distance(p.x_min, p.y_min, p.x_max, p.y_min) * 1000.0 / Params.GRID_SIZE
@@ -305,8 +395,8 @@ def testDifferential():
 
 
         roundedPoint = pp
-        # print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
+        print (str(roundedPoint[0]) + ',' + str(roundedPoint[1]))
 
 
 
-testDifferential()
+# testDifferential()

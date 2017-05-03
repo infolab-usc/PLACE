@@ -171,10 +171,9 @@ def actualLocationCount(p, locDict):
     :return: a count for each cell id
     """
     count = defaultdict()
-
     for lid in locDict.keys():
         if lid not in locDict: print "not exist", lid
         cellId = coord2CellId(locDict.get(lid), p)
-        count[cellId] += 1
+        count[cellId] = count.get(cellId, 0) + 1
 
     return count
