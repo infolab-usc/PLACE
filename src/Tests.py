@@ -37,16 +37,16 @@ class TestFunctions(unittest.TestCase):
         # self.p.users = transformDict(self.p.locs)
 
         # Discretize
-        self.p.locs = cellStats(self.p)
-        self.p.users = transformDict(self.p.locs)
+        # self.p.locs = cellStats(self.p)
+        # self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
         # self.E_actual = actualEntropy(self.p.locs)
-        self.D_actual = actualDiversity(self.p.locs)
+        # self.D_actual = actualDiversity(self.p.locs)
 
         # self.C_actual = actualLocationCount(self.p, self.p.locDict)
 
-    # @unittest.skip
+    @unittest.skip
     def testMain(self):
 
         # Visualization
@@ -105,7 +105,7 @@ class TestFunctions(unittest.TestCase):
         # distribution_pdf(cells)
         # distribution_pdf(transformDict(cells))
 
-    @unittest.skip
+    # @unittest.skip
     def testLEStats(self):
         nx = range(1,100+1)
         C, eps, K = 2, 1.0, 50
@@ -134,7 +134,7 @@ class TestFunctions(unittest.TestCase):
         line_graph(nx, ny, markers, legends, "Number of users (n)", "Sensitivity")
 
         # vary C
-        eps_list = [0.1, 0.5, 1.0, 5.0, 10.0]
+        eps_list = [0.1, 0.4, 0.7, 1.0]
         c_list = range(1, 21)
         n = 100
         ss_list = [[self.ss[CEps2Str(c, eps)][n - 1] for c in c_list] for eps in eps_list]
@@ -148,10 +148,16 @@ class TestFunctions(unittest.TestCase):
         ss_list = [[self.ss[CEps2Str(c, eps)][n - 1] for n in nx] for eps in eps_list]
         line_graph(nx, ss_list, markers, legends, "Number of users (n)", "Sensitivity")
 
+        # vary n & C
+        c_list = [1, 10, 20]
+        legends = ["C=" + str(c) for c in c_list]
+        ss_list = [[self.ss[CEps2Str(c, eps)][n - 1] for n in nx] for c in c_list]
+        line_graph(nx, ss_list, markers, legends, "Number of users (n)", "Sensitivity")
+
     @unittest.skip
     def testLEBounds(self):
         # precompute smooth sensitivity
-        eps_list = [0.1, 0.4, 0.5, 0.7, 1.0, 5.0, 10.0]
+        eps_list = [0.1, 0.4, 0.7, 1.0]
         pool = Pool(processes=len(eps_list))
         pool.map(precomputeSmoothSensitivity, eps_list)
         pool.join()
