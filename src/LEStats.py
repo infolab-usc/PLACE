@@ -135,6 +135,8 @@ def randomEntropy(n):
     :param N: number of distinct locations visited by the user
     :return:
     """
+    if n == 0:
+       return 0
     return math.log(n, Params.base)
 
 def temporalUncorrelatedEntropy(pk):
@@ -170,7 +172,7 @@ def actualLocationCount(p, locDict):
     :param p:
     :return: a count for each cell id
     """
-    count = defaultdict()
+    count = defaultdict(int)
     for lid in locDict.keys():
         if lid not in locDict: print "not exist", lid
         cellId = coord2CellId(locDict.get(lid), p)

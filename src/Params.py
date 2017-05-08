@@ -5,7 +5,7 @@ import math
 
 # # Basic parameters
 class Params(object):
-    DATASET = "gowallaau"
+    DATASET = "medium"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -26,6 +26,7 @@ class Params(object):
     DEFAULT_ENTROPY = DEFAULT_DIVERSITY = DEFAULT_FREQUENCY = 0.0
     TOP_K = 100
     MAX_ENTROPY = MAX_DIVERSITY = math.log(MAX_N, base)
+    GEOI_GRID_SIZE = 5000
 
     EARTH_RADIUS = 6378137 # const, in meters
     def __init__(self, seed):

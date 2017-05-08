@@ -7,7 +7,7 @@ from plots import distribution_pdf, line_graph, scatter
 from LEBounds import globalSensitivy, localSensitivity, precomputeSmoothSensitivity, getSmoothSensitivity
 from Params import Params
 from Utils import CEps2Str, samplingUsers, transformDict, topKValues
-from Metrics import KLDiv, KLDivergence2, typeLE, CatScore
+from Metrics import KLDiv, KLDivergence2, typeLE, DivCatScore
 from Main import evalEnt, evalBL, evalCountGeoI, perturbeEntropy, perturbeDiversity, evalDiv, evalCountDiff, perturbeCount, evalDivGeoI
 from Differential import Differential
 import sklearn.metrics as metrics
@@ -33,20 +33,20 @@ class TestFunctions(unittest.TestCase):
             self.p.locs = readData(self.p.dataset)
         else: # real
             self.p.locs, self.p.locDict = readCheckins(self.p)
-
-        # self.p.users = transformDict(self.p.locs)
+        self.p.users = transformDict(self.p.locs)
 
         # Discretize
         # self.p.locs = cellStats(self.p)
         # self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
-        # self.E_actual = actualEntropy(self.p.locs)
-        # self.D_actual = actualDiversity(self.p.locs)
+        self.E_actual = actualEntropy(self.p.locs)      # entropy
+        self.D_actual = actualDiversity(self.p.locs)    # diversity
 
-        # self.C_actual = actualLocationCount(self.p, self.p.locDict)
+        # self.C_actual = actualLocationCount(self.p, self.p.locDict) # count
 
-    @unittest.skip
+
+    # @unittest.skip
     def testMain(self):
 
         # Visualization
@@ -77,14 +77,13 @@ class TestFunctions(unittest.TestCase):
         # perturbedCounts = [C_noisy.get(id, Params.DEFAULT_FREQUENCY) for id in cellIds]
         # scatter(perturbedCounts, "Cell Id", "Locations")
 
-        # evalEnt(self.p, self.E_actual, self.ss)
+        evalEnt(self.p, self.E_actual, self.ss)
         evalDiv(self.p, self.D_actual)
-        # evalBL(self.p, self.E_actual)
+        evalBL(self.p, self.E_actual)
 
         # evalCountDiff(self.p, self.C_actual)
         # evalCountGeoI(self.p, self.C_actual)
-
-        evalDivGeoI(self.p, self.D_actual)
+        # evalDivGeoI(self.p, self.D_actual)
 
     @unittest.skip
     def testLEParser(self):
@@ -105,7 +104,7 @@ class TestFunctions(unittest.TestCase):
         # distribution_pdf(cells)
         # distribution_pdf(transformDict(cells))
 
-    # @unittest.skip
+    @unittest.skip
     def testLEStats(self):
         nx = range(1,100+1)
         C, eps, K = 2, 1.0, 50
@@ -157,12 +156,12 @@ class TestFunctions(unittest.TestCase):
     @unittest.skip
     def testLEBounds(self):
         # precompute smooth sensitivity
-        eps_list = [0.1, 0.4, 0.7, 1.0]
+        eps_list = [1.0]
         pool = Pool(processes=len(eps_list))
         pool.map(precomputeSmoothSensitivity, eps_list)
         pool.join()
-        # for eps in eps_list:
-        #     precomputeSmoothSensitivity(eps)
+        for eps in eps_list:
+            precomputeSmoothSensitivity(eps)
 
     @unittest.skip
     def testMetrics(self):
@@ -172,7 +171,7 @@ class TestFunctions(unittest.TestCase):
 
         true = [1,2,3,4,5,6,7,8,9]
         predicted = [1,2,3,4,5,6,7,8,9]
-        self.assertEqual(1, CatScore(true, predicted))
+        self.assertEqual(1, DivCatScore(true, predicted))
 
     @unittest.skip
     def testDifferential(self):

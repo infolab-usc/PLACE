@@ -18,6 +18,12 @@ class LEType(Enum):
     Medium = 2
     Dense = 3
 
+
+class CountType(Enum):
+    Sparse = 1
+    Medium = 2
+    Dense = 3
+
 def typeLE(le):
     if 0 <= le < 4:
         return LEType.Sparse
@@ -26,7 +32,15 @@ def typeLE(le):
     else:
         return LEType.Dense
 
-def CatScore(true, predicted):
+def typeFreq(count):
+    if 0 <= count < 100:
+        return LEType.Sparse
+    elif 100 <= count < 1000:
+        return LEType.Medium
+    else:
+        return LEType.Dense
+
+def DivCatScore(true, predicted):
     """
     Return precision score
     :param true:
@@ -35,6 +49,17 @@ def CatScore(true, predicted):
     """
     trueValues = [typeLE(t).value for t in true]
     predictedValues = [typeLE(p).value for p in predicted]
+    return metrics.precision_score(trueValues, predictedValues, average="micro")
+
+def FreqCatScore(true, predicted):
+    """
+    Return precision score
+    :param true:
+    :param predicted:
+    :return:
+    """
+    trueValues = [typeFreq(t).value for t in true]
+    predictedValues = [typeFreq(p).value for p in predicted]
     return metrics.precision_score(trueValues, predictedValues, average="micro")
 
 def TopK(true, predicted):
@@ -59,12 +84,14 @@ def KLDiv(P, Q):
     """
     divergence = 0.0
     sump, sumq = float(sum(P)), float(sum(Q))
-    probP, probQ = [p/sump for p in P], [q/sumq for q in Q]
+    probP, probQ = [float(p)/sump for p in P], [float(q)/sumq for q in Q]
 
     for i in xrange(len(probP)):
         if probP[i] < Params.PRECISION or probQ[i] < Params.PRECISION: continue
         divergence += probP[i] * math.log(probP[i]/probQ[i], Params.base)
     return divergence
+
+# print KLDiv([1,3,2,4,5], [0,0,0,0,0])
 
 def KLDivergence2(pk, pq):
     return stats.entropy(pk, pq, Params.base)

@@ -45,7 +45,7 @@ def globalSensitivy(C):
     worstCaseFrequency = math.log(C, Params.base) -  math.log(math.log(C, Params.base), Params.base) - 1 if C > 1 else 0
     return max(worstCaseDiversity, worstCaseFrequency)
 
-def smoothSensitivity(C, n, eps, delta):
+def smoothSensitivity(C, n, eps, delta, earlyTermination=True):
     """
     Smooth sensitity upper bound the local sensitivity.
     :param n:
@@ -57,21 +57,13 @@ def smoothSensitivity(C, n, eps, delta):
     """
     gs = globalSensitivy(C)
     beta = eps / (2.0 * math.log(2.0 / delta, math.e))
-    stopCond1, stopCond2 = False, False
     maxSS = 0
     for k in xrange(int(Params.MAX_N)):
-        currSS = 0
-        if not stopCond1:
-            ls = localSensitivity(C,  max(1, n - k))
-            currSS = max(currSS, math.exp(-k*beta) * ls)
-            stopCond1 = math.exp(-k*beta) * gs < maxSS
-        if not stopCond2:
-            ls = localSensitivity(C, n + k)
-            currSS = max(currSS, math.exp(-k*beta) * ls)
-            stopCond2 = n + k > (C / (math.log(C, Params.base) - 1) + 1)
-        maxSS = max(maxSS, currSS)
-        if stopCond1 and stopCond1: break
-
+        left_ls, right_ls = localSensitivity(C, max(1, n - k)), localSensitivity(C, n + k)
+        maxSS = max(maxSS, math.exp(-k*beta) * max(left_ls, right_ls))
+        stopCond1 = math.exp(-k * beta) * gs < maxSS # current smooth sensitivy reaches maximum
+        stopCond2 = n + k > (C / (math.log(C, Params.base) - 1) + 1)
+        if earlyTermination and stopCond1 and stopCond2: break
     return maxSS
 
 def precomputeSmoothSensitivity(eps):
@@ -86,10 +78,12 @@ def precomputeSmoothSensitivity(eps):
             lines = ""
             for n in xrange(1, int(Params.MAX_N)):
                 ss = smoothSensitivity(C, n, eps, Params.DELTA)
-                if ss < Params.MIN_SENSITIVITY: break
+                if n > (C / (math.log(C, Params.base) - 1) + 1) and ss < Params.MIN_SENSITIVITY: break  # stop condition 2
                 lines += str(n) + "\t" + str(ss) + "\n"
             f.write(lines)
         f.close()
+
+# precomputeSmoothSensitivity(1.0)
 
 def getSmoothSensitivity(C_list, eps_list):
     """
