@@ -1,6 +1,6 @@
 DELIM = "\t"
 """
-Filter out checkins in a particular region
+Filter out checkins in a   particular region
 """
 def filter_gowalla(param):
     with open("../dataset/gowalla/checkins.txt") as f:
