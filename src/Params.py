@@ -5,7 +5,7 @@ import math
 
 # # Basic parameters
 class Params(object):
-    DATASET = "medium"
+    DATASET = "gowallacn"
 
     maxHeight = 5  # maximum tree height, for kdtrees and quadtrees
 
@@ -73,6 +73,14 @@ class Params(object):
             self.y_min = -112.875481
             self.x_max = 33.806805
             self.y_max = -111.671219
+
+        if Params.DATASET == "gowallacb":
+            self.dataset = "../dataset/gowalla_CN.txt"
+            self.resdir = "../output/"
+            self.x_min = 39.1232147
+            self.y_min = 115.3879166
+            self.x_max = 40.7225952
+            self.y_max = 117.3795395
 
         if Params.DATASET == "gowallany":
             self.dataset = "../dataset/gowalla_NY.txt"

@@ -25,28 +25,28 @@ class TestFunctions(unittest.TestCase):
         self.log = logging.getLogger("debug.log")
 
         # load precomputed smooth sensitivity
-        c_list = range(1, 21)
-        eps_list = [0.1, 0.4, 0.7, 1.0]
-        self.ss = getSmoothSensitivity(c_list, eps_list)
-
-        if Params.DATASET in ["sparse", "medium", "dense"]: # synthetic
-            self.p.locs = readData(self.p.dataset)
-        else: # real
-            self.p.locs, self.p.locDict = readCheckins(self.p)
-        self.p.users = transformDict(self.p.locs)
+        # c_list = range(1, 21)
+        # eps_list = [0.1, 0.4, 0.7, 1.0]
+        # self.ss = getSmoothSensitivity(c_list, eps_list)
+        #
+        # if Params.DATASET in ["sparse", "medium", "dense"]: # synthetic
+        #     self.p.locs = readData(self.p.dataset)
+        # else: # real
+        #     self.p.locs, self.p.locDict = readCheckins(self.p)
+        # self.p.users = transformDict(self.p.locs)
 
         # Discretize
         # self.p.locs = cellStats(self.p)
         # self.p.users = transformDict(self.p.locs)
         # distribution_pdf(self.p.locs)
 
-        self.E_actual = actualEntropy(self.p.locs)      # entropy
-        self.D_actual = actualDiversity(self.p.locs)    # diversity
+        # self.E_actual = actualEntropy(self.p.locs)      # entropy
+        # self.D_actual = actualDiversity(self.p.locs)    # diversity
 
         # self.C_actual = actualLocationCount(self.p, self.p.locDict) # count
 
 
-    # @unittest.skip
+    @unittest.skip
     def testMain(self):
 
         # Visualization
@@ -195,10 +195,10 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(2.0 / 3, metrics.precision_score(indices1, indices2, average="micro"))
 
 
-    @unittest.skip
+    # @unittest.skip
     def test_filter_gowalla(self):
         filter_gowalla(self.p)
-        filter_yelp(self.p)
+        # filter_yelp(self.p)
 
     @unittest.skip
     def testDataGen(self):
